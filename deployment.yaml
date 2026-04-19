@@ -126,7 +126,8 @@ chatbot:
     size: 1Gi
     storageClassName: csi-cinder-high-speed
   ingress:
-    enabled: false
+    enabled: true
+    host: "custom-agent.agents.team-g.teams.eafit.testnet.verana.network"
 
 # === Stats (disabled) ===
 stats:
