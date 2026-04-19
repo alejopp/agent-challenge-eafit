@@ -86,7 +86,9 @@ chatbot:
     - name: LLM_PROVIDER
       value: 'openai'
     - name: OPENAI_MODEL
-      value: 'gpt-5.4-mini'
+      value: 'llama-3.3-70b-versatile'
+    - name: OPENAI_BASE_URL
+      value: 'https://api.groq.com/openai/v1'
     - name: VECTOR_STORE
       value: 'redis'
     - name: VECTOR_INDEX_NAME
