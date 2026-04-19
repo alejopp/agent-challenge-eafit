@@ -91,10 +91,10 @@ chatbot:
       value: 'redis'
     - name: VECTOR_INDEX_NAME
       value: 'example_agent'
-    - name: RAG_PROVIDER
-      value: 'langchain'
-    - name: RAG_DOCS_PATH
-      value: '/app/rag/docs'
+    # - name: RAG_PROVIDER
+    #   value: 'langchain'
+    # - name: RAG_DOCS_PATH
+    #   value: '/app/rag/docs'
     - name: AGENT_MEMORY_BACKEND
       value: 'redis'
     - name: AGENT_MEMORY_WINDOW

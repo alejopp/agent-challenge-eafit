@@ -3,16 +3,16 @@
 # This file is mounted into the chatbot container by docker-compose.
 # For K8s deployment, the agent pack is embedded in deployment.yaml.
 metadata:
-  id: example-agent
-  displayName: Example MCP Agent
+  id: my-agent
+  displayName: My MCP Agent
   description: >-
     An example AI agent with GitHub MCP integration for the EAFIT Challenge,
     deployed via the Verana ecosystem.
   defaultLanguage: en
   tags:
-    - github
-    - mcp
+    - challenge
     - eafit
+    - team-g
 
 languages:
   en:
@@ -68,8 +68,9 @@ languages:
 
 llm:
   provider: openai
-  model: gpt-5.4-mini
-  temperature: 0.2
+  model: llama-3.3-70b-versatile
+  baseUrl: https://api.groq.com/openai/v1
+  temperature: 0.4
   agentPrompt: >-
     "You are a GitHub assistant agent.\n\
       - Default assumption: every user request is about GitHub. When the user mentions repos, issues, PRs, code, branches, commits, users, or organizations, immediately use the matching GitHub MCP tool. Do NOT ask for clarification if you can infer the intent.\n\
@@ -85,14 +86,14 @@ llm:
       - Out-of-scope: only if the question is clearly unrelated to software development or GitHub (e.g. cooking, weather), respond: 'I'm a GitHub assistant — I can help you with repositories, issues, pull requests, code search, and more. What would you like to do?'\n\
       - Safety: never disclose internal data not from a tool."
 
-rag:
-  provider: langchain
-  docsPath: /app/rag/docs
-  remoteUrls:
-    - https://raw.githubusercontent.com/verana-labs/eafit-challenge-agent-example/main/docs/README.md
-  vectorStore:
-    type: redis
-    indexName: example_agent
+# rag:
+#   provider: langchain
+#   docsPath: /app/rag/docs
+#   remoteUrls:
+#     - https://raw.githubusercontent.com/verana-labs/eafit-challenge-agent-example/main/docs/README.md
+  # vectorStore:
+  #   type: redis
+  #   indexName: example_agent
 
 memory:
   backend: redis
