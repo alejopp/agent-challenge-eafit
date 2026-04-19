@@ -109,8 +109,6 @@ jobs:
             --namespace "$CHART_NAMESPACE" \
             --values /tmp/helm-values.yaml \
             --set chatbot.secret.OPENAI_API_KEY="${{ secrets.EXAMPLE_AGENT_OPENAI_API_KEY }}" \
-            --set chatbot.env.OPENAI_BASE_URL=https://api.groq.com/openai/v1 \
-            --set chatbot.env.OPENAI_MODEL=llama-3.3-70b-versatile \
             --set chatbot.secret.MCP_CONFIG_ENCRYPTION_KEY="${{ secrets.EXAMPLE_AGENT_MCP_CONFIG_ENCRYPTION_KEY }}" \
             --set chatbot.secret.POSTGRES_PASSWORD="${{ secrets.EXAMPLE_AGENT_POSTGRES_PASSWORD }}" \
             --set postgres.secret.POSTGRES_PASSWORD="${{ secrets.EXAMPLE_AGENT_POSTGRES_PASSWORD }}" \
