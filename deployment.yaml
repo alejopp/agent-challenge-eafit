@@ -127,7 +127,7 @@ chatbot:
     storageClassName: csi-cinder-high-speed
   ingress:
     enabled: true
-    host: "custom-agent.agents.team-g.teams.{{ .Values.global.domain }}"
+    host: "custom-agent.team-g.teams.eafit.testnet.verana.network"
 
 # === Stats (disabled) ===
 stats:
@@ -145,8 +145,8 @@ vs-agent-chart:
   didcommInvitationImageUrl: 'https://hologram.zone/images/github.svg'
   eventsBaseUrl: http://example-agent-chart-chatbot:3003
   ingress:
-    host: "example-agent.team-g.teams.{{ .Values.global.domain }}"
-    tlsSecret: "example-agent-team-g-cert"
+    host: "example-agent.{{ .Values.global.domain }}"
+    tlsSecret: "example-agent.{{ .Values.global.domain }}-cert"
     public:
       enableCors: true
     private:
