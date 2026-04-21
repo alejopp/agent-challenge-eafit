@@ -162,15 +162,15 @@ vs-agent-chart:
       value: "example-agent-chart-redis"
     - name: AGENT_LOG_LEVEL
       value: "3"
-    - name: SELF_ISSUED_VTC_ORG_TYPE
-      value: "PRIVATE"
-    - name: SELF_ISSUED_VTC_ORG_COUNTRYCODE
-      value: "CO"
-    - name: SELF_ISSUED_VTC_ORG_ADDRESS
-      value: "Medellin, Colombia"
-    - name: SELF_ISSUED_VTC_SERVICE_TYPE
-      value: "AI Agent"
-    - name: SELF_ISSUED_VTC_SERVICE_DESCRIPTION
-      value: "Example AI agent for the EAFIT Challenge"
-    - name: SELF_ISSUED_VTC_SERVICE_MINIMUMAGEREQUIRED
-      value: "1"
+    # - name: SELF_ISSUED_VTC_ORG_TYPE
+    #   value: "PRIVATE"
+    # - name: SELF_ISSUED_VTC_ORG_COUNTRYCODE
+    #   value: "CO"
+    # - name: SELF_ISSUED_VTC_ORG_ADDRESS
+    #   value: "Medellin, Colombia"
+    # - name: SELF_ISSUED_VTC_SERVICE_TYPE
+    #   value: "AI Agent"
+    # - name: SELF_ISSUED_VTC_SERVICE_DESCRIPTION
+    #   value: "Example AI agent for the EAFIT Challenge"
+    # - name: SELF_ISSUED_VTC_SERVICE_MINIMUMAGEREQUIRED
+    #   value: "1"
