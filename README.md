@@ -1,108 +1,144 @@
-# EAFIT Challenge — Example Agent
+# Persona AI Studio
 
-An example AI agent with GitHub MCP integration, deployed as a Verifiable Service on the [Verana](https://verana.io) ecosystem. This is part of the [EAFIT Challenge](https://github.com/verana-labs/eafit-challenge).
+A full-stack React web application for creating, configuring, and publishing Persona AI Agents to the Verana / Hologram ecosystem.
 
-## Architecture
+The project now includes:
 
-This example agent is built with the [hologram-generic-ai-agent-vs](https://github.com/2060-io/hologram-generic-ai-agent-vs) container, which provides a ready-to-use AI chatbot with DIDComm messaging, verifiable credential authentication, and MCP tool integration.
+- A light-theme React dashboard for registration, bot management, and step-by-step bot creation
+- An Express API with SQLite persistence, JWT authentication, file uploads, and publish / unpublish actions
+- Two implemented MCP integrations: Weather Planner and Wikipedia Research
+- RAG document upload support
+- Kubernetes deployment bundle generation based on the Verana agent-pack pattern already present in this repository
+- Docker and GitHub Actions artifacts for containerized deployment
 
-You can find other agent examples (GitHub Agent, Wise Agent, etc.) in the [hologram-verifiable-services](https://github.com/2060-io/hologram-verifiable-services) repository.
+## Screenshots
 
-This agent is a **child service** of the EAFIT Challenge organization. It:
+Dashboard:
 
-1. Receives a **Service credential** from the organization (proves it's a legitimate service)
-2. Uses the **Avatar credential definition** from `avatar.eafit.testnet.verana.network` to authenticate users via AnonCreds proof requests
-3. Provides GitHub MCP tools to authenticated users via encrypted DIDComm chat
+![Dashboard screenshot](docs/screenshots/dashboard-light.svg)
 
-## Repository Structure
+Bot builder:
 
-```
-├── config.env              # Service configuration (ports, org URLs, credDef, etc.)
-├── deployment.yaml         # Helm chart values for K8s deployment
-├── agent-pack.yaml         # Chatbot agent pack (prompts, menus, MCP config)
-├── common/
-│   └── common.sh           # Shared shell helpers
-├── docker/
-│   └── docker-compose.yml  # Local development stack
-├── scripts/
-│   ├── setup.sh            # Local setup (VS Agent + ngrok + Service credential)
-│   └── start.sh            # Start Docker Compose stack
+![Builder screenshot](docs/screenshots/builder-light.svg)
+
+## Project Structure
+
+```text
+.
+├── web-app/
+│   ├── client/                 # React frontend
+│   ├── server/                 # Express API, SQLite, MCP endpoints
+│   ├── Dockerfile              # Bonus containerization
+│   └── .env.example            # Global configuration template
 ├── docs/
-│   └── README.md           # User-facing guide
-└── .github/
-    └── workflows/
-        └── deploy.yml      # GitHub Actions workflow for K8s deployment
+│   ├── README.md               # User documentation
+│   ├── technical-architecture.md
+│   └── screenshots/
+├── agent-pack.yaml             # Legacy example agent pack kept for reference
+├── deployment.yaml             # Legacy example deployment kept for reference
+└── .github/workflows/deploy.yml
 ```
 
-## Local Development
+## Features Delivered
 
-### Prerequisites
+### Web interface
 
-- Docker and Docker Compose
-- [ngrok](https://ngrok.com/) (authenticated)
-- `curl`, `jq`
-- An OpenAI API key (or other LLM provider)
-- [Hologram Messaging](https://hologram.zone) on your phone
-- An **EAFIT Avatar credential** (see below)
+- Responsive React application
+- Light visual theme
+- Login, register, logout
+- Dashboard with bot listing and status overview
+- Guided bot creation flow
+- Bot detail view
+- Edit, save, publish, unpublish, and delete actions
 
-The setup script connects to the deployed EAFIT organization at `admin.organization.eafit.testnet.verana.network` to obtain the Service credential. No local organization instance is required.
+### Bot configuration
 
-### Get your EAFIT Avatar Credential
+- Persona attributes: name, profession, description, photo
+- Service attributes: service name, description, category
+- Prompt editor for personality and behavior
+- MCP server selection
+- RAG document uploads
 
-The chatbot uses **credential-based authentication** — you need an EAFIT Avatar credential to test your agent.
+### Platform integrations
 
-1. Open **Hologram Messaging** on your phone
-2. Navigate to https://avatar.eafit.testnet.verana.network/
-3. Scan the QR code and follow the prompts to obtain your credential
+- Weather Planner MCP server
+- Wikipedia Research MCP server
+- Deployment bundle generation for Verana-compatible agent packs and Helm values
 
-You can verify it works by connecting to the deployed example agent at https://example-agent.eafit.testnet.verana.network/ — scan the QR code, authenticate with your credential, and chat with the bot.
+## Quick Start
 
-### Quick Start
+### 1. Configure environment
 
 ```bash
-# 1. Set up the VS Agent (deploys container, gets Service credential)
-source config.env
-./scripts/setup.sh
-
-# 2. Start the chatbot stack (chatbot + redis + postgres)
-export OPENAI_API_KEY=sk-...
-./scripts/start.sh
+cd web-app
+cp .env.example .env
 ```
 
-> Note: if you don't want to use an OPENAI_API_KEY, you can configure any other LLM, refer to [agent pack schema](https://github.com/2060-io/hologram-generic-ai-agent-vs/blob/main/docs/agent-pack-schema.md) for available options.
+Set at least:
 
-## Kubernetes Deployment (GitHub Actions)
+- `JWT_SECRET`
+- `BASE_DOMAIN`
+- `TEAM_NAME`
+- `BACKEND_PUBLIC_URL`
+- `KUBECONFIG_PATH`
+- `K8S_NAMESPACE`
+- `OPENAI_API_KEY`
 
-The `.github/workflows/deploy.yml` workflow deploys the agent to the shared EAFIT Challenge K8s cluster.
+If you only want to generate bundles without applying them to Kubernetes, keep:
 
-### Required GitHub Secrets
+```bash
+ENABLE_K8S_APPLY=false
+```
 
-| Secret | Description |
-| ------ | ----------- |
-| `OVH_KUBECONFIG` | Kubeconfig for the K8s cluster |
-| `K8S_NAMESPACE` | Target namespace (ideally, use your team name) |
-| `EXAMPLE_AGENT_OPENAI_API_KEY` | OpenAI API key for the chatbot |
-| `EXAMPLE_AGENT_POSTGRES_PASSWORD` | PostgreSQL password |
-| `EXAMPLE_AGENT_MCP_CONFIG_ENCRYPTION_KEY` | Encryption key for MCP user configs (generate with `openssl rand -hex 32`) |
-| `EXAMPLE_AGENT_WALLET_KEY` | VS Agent wallet encryption key (generate with `openssl rand -base64 32`) |
-| `EXAMPLE_AGENT_VSAGENT_DB_PASSWORD` | VS Agent internal DB password |
+### 2. Install dependencies
 
-### Deployment
+```bash
+npm install
+```
 
-Run the workflow from the GitHub Actions tab with step `all` to deploy and obtain credentials.
+### 3. Run locally
 
-The agent will be available at the URL configured in `AGENT_PUBLIC_URL` (see below).
+```bash
+npm run dev
+```
 
-## Configuration
+The frontend runs on `http://localhost:5173` and the API on `http://localhost:4000`.
 
-Key settings in `config.env`:
+### 4. Build for production
 
-- **`AGENT_PUBLIC_URL`** — Public URL of the deployed agent. For student teams, use the convention: `https://<agentname>.agents.<team_name>.teams.eafit.testnet.verana.network`
-- **`CREDENTIAL_DEFINITION_ID`** — AnonCreds credDef from the EAFIT Avatar service (hardcoded)
-- **`ORG_VS_PUBLIC_URL`** — Public URL of the EAFIT organization agent
-- **`SERVICE_NAME`** — Display name shown in the Service credential
-- **`OPENAI_MODEL`** — LLM model for the chatbot
+```bash
+npm run build
+npm start
+```
 
-## License
+## Publishing Flow
 
-Apache-2.0
+When a user clicks `Publish`, the backend:
+
+1. Validates the bot configuration
+2. Generates an `agent-pack.yaml`
+3. Generates a `values.yaml` bundle for the Hologram generic agent chart
+4. Stores both under `web-app/server/generated/<bot-slug>/`
+5. Optionally runs `helm upgrade --install ...` if `ENABLE_K8S_APPLY=true`
+6. Saves the public URL as `https://<slug>.<base-domain>`
+
+## Bonus CI/CD
+
+The workflow at [.github/workflows/deploy.yml](.github/workflows/deploy.yml) builds the web application container, pushes it to Docker Hub, and updates the Kubernetes deployment on every push to `main`.
+
+Required GitHub secrets:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+- `KUBE_CONFIG`
+- `K8S_NAMESPACE`
+
+## Documentation
+
+- User guide: [docs/README.md](docs/README.md)
+- Technical architecture: [docs/technical-architecture.md](docs/technical-architecture.md)
+
+## Notes
+
+- The original challenge example-agent files remain in the repository because the publish flow reuses their Verana deployment conventions as a reference.
+- Google OAuth was intentionally left as an optional future extension; the required auth flow is fully implemented with email/password.

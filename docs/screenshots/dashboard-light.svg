@@ -1,0 +1,44 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="900" fill="#F7F0E7"/>
+  <circle cx="190" cy="120" r="190" fill="#FFDCC8"/>
+  <circle cx="1230" cy="140" r="220" fill="#DDEEFF"/>
+  <rect x="24" y="24" width="280" height="852" rx="32" fill="#FFF9F2" stroke="#EAD5C8"/>
+  <rect x="62" y="60" width="56" height="56" rx="18" fill="#FFD2A9"/>
+  <text x="138" y="85" fill="#2E221A" font-family="Arial" font-size="28" font-weight="700">Persona AI Studio</text>
+  <text x="138" y="114" fill="#7E6757" font-family="Arial" font-size="16">Agent builder</text>
+  <rect x="52" y="180" width="224" height="56" rx="18" fill="white" stroke="#EAD5C8"/>
+  <text x="82" y="215" fill="#2E221A" font-family="Arial" font-size="20">Dashboard</text>
+  <rect x="52" y="250" width="224" height="56" rx="18" fill="#FFF3EA"/>
+  <text x="82" y="285" fill="#2E221A" font-family="Arial" font-size="20">New Bot</text>
+  <rect x="328" y="24" width="1088" height="852" rx="32" fill="#FFF9F2" stroke="#EAD5C8"/>
+  <text x="380" y="92" fill="#D96D44" font-family="Arial" font-size="14" letter-spacing="3">OPERATIONS HUB</text>
+  <text x="380" y="144" fill="#2E221A" font-family="Arial" font-size="52" font-weight="700">My AI Bots</text>
+  <text x="380" y="180" fill="#7E6757" font-family="Arial" font-size="22">Manage drafts, publish to Kubernetes, and open Hologram-ready URLs.</text>
+  <rect x="380" y="230" width="230" height="144" rx="28" fill="#FEE7BF"/>
+  <rect x="628" y="230" width="230" height="144" rx="28" fill="#D6F1E2"/>
+  <rect x="876" y="230" width="230" height="144" rx="28" fill="#DFEEFC"/>
+  <rect x="1124" y="230" width="230" height="144" rx="28" fill="#F8D9D6"/>
+  <text x="410" y="278" fill="#7E6757" font-family="Arial" font-size="18">Total bots</text>
+  <text x="410" y="332" fill="#2E221A" font-family="Arial" font-size="48" font-weight="700">06</text>
+  <text x="658" y="278" fill="#7E6757" font-family="Arial" font-size="18">Published</text>
+  <text x="658" y="332" fill="#2E221A" font-family="Arial" font-size="48" font-weight="700">04</text>
+  <text x="906" y="278" fill="#7E6757" font-family="Arial" font-size="18">Drafts</text>
+  <text x="906" y="332" fill="#2E221A" font-family="Arial" font-size="48" font-weight="700">02</text>
+  <text x="1154" y="278" fill="#7E6757" font-family="Arial" font-size="18">MCP in use</text>
+  <text x="1154" y="332" fill="#2E221A" font-family="Arial" font-size="48" font-weight="700">11</text>
+  <rect x="380" y="404" width="476" height="194" rx="28" fill="white" stroke="#EAD5C8"/>
+  <rect x="878" y="404" width="476" height="194" rx="28" fill="white" stroke="#EAD5C8"/>
+  <rect x="380" y="620" width="476" height="194" rx="28" fill="white" stroke="#EAD5C8"/>
+  <rect x="878" y="620" width="476" height="194" rx="28" fill="white" stroke="#EAD5C8"/>
+  <text x="414" y="448" fill="#D96D44" font-family="Arial" font-size="14" letter-spacing="2">HOME SERVICES</text>
+  <text x="414" y="488" fill="#2E221A" font-family="Arial" font-size="32" font-weight="700">Andrea Plumber</text>
+  <text x="414" y="526" fill="#7E6757" font-family="Arial" font-size="18">Schedules emergency visits, confirms availability, and answers maintenance questions.</text>
+  <rect x="720" y="438" width="104" height="34" rx="17" fill="#D6F1E2"/>
+  <text x="744" y="460" fill="#2E221A" font-family="Arial" font-size="14">published</text>
+  <text x="912" y="488" fill="#2E221A" font-family="Arial" font-size="32" font-weight="700">Sofia Tutor</text>
+  <text x="912" y="526" fill="#7E6757" font-family="Arial" font-size="18">Helps families book classes and shares learning plans using uploaded study guides.</text>
+  <rect x="1216" y="438" width="80" height="34" rx="17" fill="#DFEEFC"/>
+  <text x="1234" y="460" fill="#2E221A" font-family="Arial" font-size="14">draft</text>
+  <text x="414" y="704" fill="#2E221A" font-family="Arial" font-size="32" font-weight="700">Julian Fitness</text>
+  <text x="912" y="704" fill="#2E221A" font-family="Arial" font-size="32" font-weight="700">Laura Events</text>
+</svg>

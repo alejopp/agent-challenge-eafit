@@ -1,71 +1,106 @@
-# Example Agent — User Guide
+# Persona AI Studio — User Guide
 
-Welcome to the **Example Agent**, an AI-powered GitHub assistant deployed as part of the [EAFIT Challenge](https://github.com/verana-labs/eafit-challenge) on the Verana ecosystem.
+Persona AI Studio lets non-technical users create and manage AI agents that represent real professionals.
 
-## Getting Started
+## Main flow
 
-### 1. Install Hologram Messaging
+1. Register or log in
+2. Open `New Bot`
+3. Complete the guided steps:
+   - Persona
+   - Service
+   - Prompt
+   - MCP + RAG
+   - Review
+4. Save the bot
+5. Open the bot detail page
+6. Click `Publish`
+7. Open the generated public URL in Hologram
 
-Download the Hologram Messaging app and create your account.
+## What you can configure
 
-### 2. Get Your Credential
+### Persona attributes
 
-Connect to the **Avatar** service at `avatar.eafit.testnet.verana.network` first. It will issue you a verifiable credential (AnonCreds) that proves your identity. You need this credential to authenticate with the Example Agent.
+- Name
+- Profession
+- Persona description
+- Photo
 
-### 3. Connect to the Example Agent
+### Service attributes
 
-Scan the Example Agent's QR code or tap its invitation link. The agent will greet you and ask you to authenticate.
+- Service name
+- Service description
+- Service category
 
-### 4. Authenticate
+### Prompt
 
-Open the contextual menu (hamburger icon) and tap **Authenticate**. The agent will request your verifiable credential. Accept the proof request to complete authentication.
+Use the prompt editor to define:
 
-### 5. Configure Your GitHub Token
+- Tone of voice
+- Boundaries
+- Sales style
+- Escalation rules
+- Scheduling instructions
 
-After authenticating, open the contextual menu and select **MCP Server Config**. The agent will ask you to enter your **GitHub Personal Access Token**.
+### MCP services
 
-To create a token:
-1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
-2. Click **Generate new token (classic)** or use a **Fine-grained token**
-3. Select the scopes you need (e.g. `repo`, `read:org`, `read:user`)
-4. Copy the token and paste it into the chat
+The platform includes two selectable MCP integrations:
 
-The agent will verify the token works and confirm the configuration.
+- `Weather Planner`
+  - Checks weather conditions for a location
+  - Helps decide whether an outdoor appointment should go ahead
+- `Wikipedia Research`
+  - Searches Wikipedia
+  - Reads page summaries for general knowledge support
 
-## What Can the Example Agent Do?
+### RAG
 
-Once configured, you can ask the agent to:
+Upload reference files such as:
 
-- **Search repositories** — "Find Python machine learning repos with more than 1000 stars"
-- **Browse issues** — "Show me open issues in my-org/my-repo"
-- **List pull requests** — "What PRs are open in my-org/my-repo?"
-- **Read file contents** — "Show me the README of my-org/my-repo"
-- **Explore code** — "Search for usages of `useState` in my-org/frontend"
-- **Get commit history** — "Show recent commits on main in my-org/my-repo"
-- **View user profiles** — "Who is octocat on GitHub?"
-- **List branches and tags** — "What branches exist in my-org/my-repo?"
+- PDFs
+- Service brochures
+- Pricing sheets
+- FAQs
+- Internal notes
 
-Just type your request in natural language — the agent will figure out which GitHub API to call.
+Those files are stored and then added to the generated agent-pack as remote RAG sources.
 
-## Tips
+## Dashboard actions
 
-- **Be specific**: "Show open issues labeled `bug` in my-org/my-repo" works better than "show bugs"
-- **Use natural language**: No need to remember API syntax — just describe what you want
-- **Multi-language**: The agent responds in your language (English, Spanish)
-- **Token security**: Your GitHub token is stored encrypted and is never shared with other users
+Each bot card supports:
+
+- `Open`
+- `Edit`
+- `Publish`
+- `Unpublish`
+- `Delete`
+
+Published bots display a public URL button.
+
+## Publish behavior
+
+When you publish a bot, the platform:
+
+1. Generates deployment artifacts
+2. Assigns a URL in this format:
+   `<agentname>.agents.<team_name>.teams.eafit.testnet.verana.network`
+3. Optionally executes Helm against your Kubernetes cluster if it is enabled in `.env`
+
+## Screens
+
+Dashboard:
+
+![Dashboard](screenshots/dashboard-light.svg)
+
+Bot builder:
+
+![Builder](screenshots/builder-light.svg)
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Agent says "Authentication required" | Open the menu and tap **Authenticate** |
-| Agent says token is invalid | Regenerate your GitHub token and reconfigure via **MCP Server Config** |
-| Agent can't find a repo | Make sure your token has access to that repository |
-| Agent is unresponsive | Try sending "hello" or reconnect from Hologram Messaging |
-
-## Privacy & Security
-
-- All communication is end-to-end encrypted via DIDComm
-- Your GitHub token is stored per-user and encrypted at rest
-- The agent only accesses GitHub on your behalf — no data is shared between users
-- Your identity is verified through the Verana ecosystem's verifiable credentials
+| Problem | What to check |
+| --- | --- |
+| Publish fails | Verify `KUBECONFIG_PATH`, `K8S_NAMESPACE`, and `ENABLE_K8S_APPLY` |
+| Public URL not opening | Confirm your ingress / DNS configuration in the cluster |
+| File uploads fail | Check that the server can write to `web-app/server/uploads/` |
+| MCP server is unavailable | Make sure the backend is reachable from the deployed bot URL |

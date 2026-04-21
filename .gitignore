@@ -1,12 +1,8 @@
-# VS Agent data
-data/
-
-# Generated IDs
-ids.env
-
-# OS
+web-app/node_modules
+web-app/client/dist
+web-app/server/data
+web-app/server/uploads/*
+!web-app/server/uploads/.gitkeep
+web-app/server/generated/*
+!web-app/server/generated/.gitkeep
 .DS_Store
-
-# Editor
-.vscode/
-.idea/
