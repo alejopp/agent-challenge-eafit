@@ -116,7 +116,7 @@ chatbot:
     name: example-agent
     mountPath: /app/agent-packs/example-agent
     fileName: agent-pack.yaml
-    existingConfigMap: 'example-agent-agent-pack'
+    existingConfigMap: 'alejo-agent-agent-pack'
   secret:
     POSTGRES_PASSWORD: 'placeholder'
     POSTGRES_USER: 'alejo_agent'
@@ -142,9 +142,9 @@ artemis:
 vs-agent-chart:
   enabled: true
   name: alejo-agent
-  didcommLabel: 'Example Agent'
+  didcommLabel: 'Alejo Agent'
   didcommInvitationImageUrl: 'https://hologram.zone/images/github.svg'
-  eventsBaseUrl: http://example-agent-chart-chatbot:3003
+  eventsBaseUrl: http://alejo-agent-chart-chatbot:3003
   ingress:
     host: "alejo-agent.agents.team-g.teams.eafit.testnet.verana.network"
     tlsSecret: "example-agent.{{ .Values.global.domain }}-cert"
@@ -159,7 +159,7 @@ vs-agent-chart:
     - name: USE_CORS
       value: "true"
     - name: REDIS_HOST
-      value: "example-agent-chart-redis"
+      value: "alejo-agent-chart-redis"
     - name: AGENT_LOG_LEVEL
       value: "3"
     # - name: SELF_ISSUED_VTC_ORG_TYPE
