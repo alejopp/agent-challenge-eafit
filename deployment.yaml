@@ -13,7 +13,7 @@ chartVersion: v1.11.2
 global:
   domain: eafit.testnet.verana.network
 
-nameOverride: 'example-agent-chart'
+nameOverride: 'alejo-agent-chart'
 
 # Credential definition ID for user authentication (injected from config.env by workflow)
 credentialDefinitionId: ''
@@ -51,8 +51,8 @@ postgres:
       value: '/var/lib/postgresql/data/pgdata'
   secret:
     POSTGRES_PASSWORD: 'placeholder'
-    POSTGRES_USER: 'example_agent_db'
-    POSTGRES_DB: 'example-agent'
+    POSTGRES_USER: 'alejo_agent'
+    POSTGRES_DB: 'alejo-agent-db'
   resources:
     requests:
       cpu: '100m'
@@ -102,11 +102,11 @@ chatbot:
     - name: AGENT_MEMORY_WINDOW
       value: '20'
     - name: REDIS_URL
-      value: 'redis://example-agent-chart-redis.{{ .Release.Namespace }}:6379'
+      value: 'redis://alejo-agent-chart-redis.{{ .Release.Namespace }}:6379'
     - name: VS_AGENT_ADMIN_URL
-      value: 'http://example-agent.{{ .Release.Namespace }}:3000'
+      value: 'http://alejo-agent.{{ .Release.Namespace }}:3000'
     - name: POSTGRES_HOST
-      value: 'example-agent-chart-postgres.{{ .Release.Namespace }}'
+      value: 'alejo-agent-chart-postgres.{{ .Release.Namespace }}'
     - name: CREDENTIAL_DEFINITION_ID
       value: '{{ .Values.credentialDefinitionId | default "" }}'
     - name: GITHUB_MCP_URL
@@ -119,8 +119,8 @@ chatbot:
     existingConfigMap: 'example-agent-agent-pack'
   secret:
     POSTGRES_PASSWORD: 'placeholder'
-    POSTGRES_USER: 'example_agent_db'
-    POSTGRES_DB_NAME: 'example-agent'
+    POSTGRES_USER: 'alejo_agent'
+    POSTGRES_DB_NAME: 'alejo-agent-db'
   service:
     type: ClusterIP
     port: 3003
@@ -141,12 +141,12 @@ artemis:
 # === VS Agent ===
 vs-agent-chart:
   enabled: true
-  name: example-agent
+  name: alejo-agent
   didcommLabel: 'Example Agent'
   didcommInvitationImageUrl: 'https://hologram.zone/images/github.svg'
   eventsBaseUrl: http://example-agent-chart-chatbot:3003
   ingress:
-    host: "custom-agent.agents.team-g.teams.eafit.testnet.verana.network"
+    host: "alejo-agent.agents.team-g.teams.eafit.testnet.verana.network"
     tlsSecret: "example-agent.{{ .Values.global.domain }}-cert"
     public:
       enableCors: true
@@ -155,7 +155,7 @@ vs-agent-chart:
       host: ""
   extraEnv:
     - name: AGENT_WALLET_ID
-      value: "Example Agent"
+      value: "Alejo Agent"
     - name: USE_CORS
       value: "true"
     - name: REDIS_HOST
