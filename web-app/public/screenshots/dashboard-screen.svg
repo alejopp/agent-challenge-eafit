@@ -1,0 +1,39 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="900" fill="#F7F4FE"/>
+  <rect x="40" y="40" width="1360" height="820" rx="32" fill="#FCFBFF" stroke="#DDD8F0"/>
+  <rect x="76" y="76" width="280" height="748" rx="28" fill="#F6F4FD" stroke="#E3DFF4"/>
+  <rect x="108" y="112" width="56" height="56" rx="16" fill="#7F77DD"/>
+  <text x="128" y="148" fill="white" font-family="Arial" font-size="22" font-weight="700">PA</text>
+  <text x="180" y="139" fill="#26233D" font-family="Arial" font-size="34" font-weight="700">Persona AI</text>
+  <text x="180" y="170" fill="#8C89B0" font-family="Arial" font-size="24">Agent builder</text>
+  <rect x="108" y="232" width="216" height="62" rx="18" fill="#ECE8FB" stroke="#D8D1F4"/>
+  <text x="140" y="271" fill="#625EA4" font-family="Arial" font-size="26" font-weight="700">Dashboard</text>
+  <text x="120" y="346" fill="#2FA67F" font-family="Arial" font-size="30" font-weight="700">+ New Bot</text>
+  <text x="104" y="438" fill="#A29CC7" font-family="Arial" font-size="22" font-weight="700">WORKSPACE</text>
+  <text x="104" y="488" fill="#625EA4" font-family="Arial" font-size="28">My agents</text>
+  <text x="104" y="544" fill="#625EA4" font-family="Arial" font-size="28">Templates</text>
+  <text x="104" y="600" fill="#625EA4" font-family="Arial" font-size="28">MCP Services</text>
+  <rect x="108" y="730" width="216" height="70" rx="18" fill="#ECE8FB"/>
+  <text x="144" y="774" fill="#625EA4" font-family="Arial" font-size="28">demo</text>
+  <text x="404" y="124" fill="#A29CC7" font-family="Arial" font-size="20">OPERATIONS HUB</text>
+  <text x="404" y="190" fill="#26233D" font-family="Arial" font-size="58" font-weight="700">My AI Bots</text>
+  <text x="404" y="244" fill="#8C89B0" font-family="Arial" font-size="26">Manage drafts, publish to Kubernetes, and open agent URLs.</text>
+  <rect x="1080" y="118" width="240" height="78" rx="18" fill="#F4F2FB" stroke="#EEE9FA"/>
+  <text x="1140" y="166" fill="#D1CCE6" font-family="Arial" font-size="30" font-weight="700">+ Create bot</text>
+  <rect x="404" y="300" width="168" height="144" rx="22" fill="white" stroke="#DDD8F0"/>
+  <rect x="592" y="300" width="168" height="144" rx="22" fill="white" stroke="#DDD8F0"/>
+  <rect x="780" y="300" width="168" height="144" rx="22" fill="white" stroke="#DDD8F0"/>
+  <rect x="968" y="300" width="168" height="144" rx="22" fill="#E3F4EF" stroke="#C7E7DD"/>
+  <text x="438" y="346" fill="#8C89B0" font-family="Arial" font-size="24">Total bots</text>
+  <text x="636" y="346" fill="#8C89B0" font-family="Arial" font-size="24">Published</text>
+  <text x="824" y="346" fill="#8C89B0" font-family="Arial" font-size="24">Drafts</text>
+  <text x="1002" y="346" fill="#2A7B62" font-family="Arial" font-size="24">MCP services</text>
+  <text x="462" y="418" fill="#26233D" font-family="Arial" font-size="66" font-weight="700">4</text>
+  <text x="650" y="418" fill="#26233D" font-family="Arial" font-size="66" font-weight="700">2</text>
+  <text x="838" y="418" fill="#26233D" font-family="Arial" font-size="66" font-weight="700">2</text>
+  <text x="1026" y="418" fill="#26233D" font-family="Arial" font-size="66" font-weight="700">2</text>
+  <text x="404" y="520" fill="#26233D" font-family="Arial" font-size="38" font-weight="700">Bot workspace</text>
+  <rect x="404" y="564" width="880" height="220" rx="28" fill="white" stroke="#DDD8F0" stroke-dasharray="12 10"/>
+  <text x="730" y="664" fill="#26233D" font-family="Arial" font-size="42" font-weight="700">No bots yet</text>
+  <text x="602" y="716" fill="#8C89B0" font-family="Arial" font-size="28">Create your first Persona AI Agent to start building your portfolio.</text>
+</svg>
