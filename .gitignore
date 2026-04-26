@@ -10,3 +10,6 @@ ids.env
 # Editor
 .vscode/
 .idea/
+
+# Node modules
+node_modules/
