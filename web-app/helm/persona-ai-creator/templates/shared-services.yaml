@@ -1,0 +1,192 @@
+{{- if .Values.sharedServices.postgres.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.sharedServices.postgres.serviceName }}
+spec:
+  type: ClusterIP
+  selector:
+    app: shared-postgres
+  ports:
+    - name: postgres
+      port: {{ .Values.sharedServices.postgres.port }}
+      targetPort: {{ .Values.sharedServices.postgres.port }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.sharedServices.postgres.serviceName }}
+spec:
+  serviceName: {{ .Values.sharedServices.postgres.serviceName }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shared-postgres
+  template:
+    metadata:
+      labels:
+        app: shared-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.sharedServices.postgres.image }}
+          ports:
+            - containerPort: {{ .Values.sharedServices.postgres.port }}
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.env.SHARED_POSTGRES_DATABASE | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.env.SHARED_POSTGRES_USER | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "persona-ai-creator.fullname" . }}-secret
+                  key: SHARED_POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+{{ toYaml .Values.sharedServices.postgres.resources | indent 12 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.sharedServices.postgres.storage.size }}
+        storageClassName: {{ .Values.sharedServices.postgres.storage.storageClassName }}
+{{- end }}
+{{- if .Values.sharedServices.redis.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.sharedServices.redis.serviceName }}
+spec:
+  type: ClusterIP
+  selector:
+    app: shared-redis
+  ports:
+    - name: redis
+      port: {{ .Values.sharedServices.redis.port }}
+      targetPort: {{ .Values.sharedServices.redis.port }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.sharedServices.redis.serviceName }}
+spec:
+  serviceName: {{ .Values.sharedServices.redis.serviceName }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shared-redis
+  template:
+    metadata:
+      labels:
+        app: shared-redis
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.sharedServices.redis.image }}
+          args:
+            - redis-server
+            - --appendonly
+            - "yes"
+          ports:
+            - containerPort: {{ .Values.sharedServices.redis.port }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+{{ toYaml .Values.sharedServices.redis.resources | indent 12 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.sharedServices.redis.storage.size }}
+        storageClassName: {{ .Values.sharedServices.redis.storage.storageClassName }}
+{{- end }}
+{{- if .Values.sharedServices.ollama.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.sharedServices.ollama.serviceName }}
+spec:
+  type: ClusterIP
+  selector:
+    app: shared-ollama
+  ports:
+    - name: http
+      port: {{ .Values.sharedServices.ollama.port }}
+      targetPort: {{ .Values.sharedServices.ollama.port }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.sharedServices.ollama.serviceName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shared-ollama
+  template:
+    metadata:
+      labels:
+        app: shared-ollama
+    spec:
+      containers:
+        - name: ollama
+          image: {{ .Values.sharedServices.ollama.image }}
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              ollama serve &
+              pid="$!"
+              until ollama list >/dev/null 2>&1; do sleep 2; done
+              ollama pull "{{ .Values.sharedServices.ollama.model }}"
+              wait "$pid"
+          env:
+            - name: OLLAMA_HOST
+              value: 0.0.0.0:{{ .Values.sharedServices.ollama.port }}
+          ports:
+            - containerPort: {{ .Values.sharedServices.ollama.port }}
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+          resources:
+{{ toYaml .Values.sharedServices.ollama.resources | indent 12 }}
+      volumes:
+        - name: ollama-data
+{{- if .Values.sharedServices.ollama.storage.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.sharedServices.ollama.serviceName }}-data
+{{- else }}
+          emptyDir: {}
+{{- end }}
+{{- if .Values.sharedServices.ollama.storage.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.sharedServices.ollama.serviceName }}-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.sharedServices.ollama.storage.size }}
+  storageClassName: {{ .Values.sharedServices.ollama.storage.storageClassName }}
+{{- end }}
+{{- end }}

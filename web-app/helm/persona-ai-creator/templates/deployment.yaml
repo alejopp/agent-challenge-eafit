@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "persona-ai-creator.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "persona-ai-creator.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "persona-ai-creator.fullname" . }}
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "persona-ai-creator.fullname" . }}-config
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "persona-ai-creator.fullname" . }}-secret
+                  key: JWT_SECRET
+            - name: SHARED_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "persona-ai-creator.fullname" . }}-secret
+                  key: SHARED_POSTGRES_PASSWORD
+          volumeMounts:
+            - name: secrets
+              mountPath: /app/secrets
+              readOnly: true
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: secrets
+          secret:
+            secretName: {{ include "persona-ai-creator.fullname" . }}-secret
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "persona-ai-creator.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

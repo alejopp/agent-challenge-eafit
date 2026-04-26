@@ -1,0 +1,137 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+
+.screen{display:flex;border-radius:14px;overflow:hidden;border:0.5px solid #ddd8f0;height:500px}
+
+.left{width:200px;flex-shrink:0;background:#1E1A3C;padding:28px 20px;display:flex;flex-direction:column;justify-content:space-between}
+.left-top{}
+.l-logo{display:flex;align-items:center;gap:8px;margin-bottom:36px}
+.l-mark{width:28px;height:28px;border-radius:8px;background:#7F77DD;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#fff}
+.l-name{font-size:13px;font-weight:500;color:#e8e4ff;letter-spacing:-.01em}
+
+.l-headline{font-size:18px;font-weight:500;color:#fff;line-height:1.3;letter-spacing:-.02em;margin-bottom:12px}
+.l-sub{font-size:11px;color:#6060a0;line-height:1.5}
+
+.l-chips{display:flex;flex-direction:column;gap:8px;margin-top:28px}
+.chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(127,119,221,.12);border:0.5px solid rgba(127,119,221,.2)}
+.chip-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.chip-text{font-size:10px;color:#9090c0;line-height:1.3}
+
+.l-footer{font-size:9px;color:#3a3870;line-height:1.4}
+
+.right{flex:1;background:#FAFAF9;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 36px}
+
+.form-wrap{width:100%}
+
+.f-eyebrow{font-size:9px;font-weight:500;letter-spacing:.08em;color:#9090c0;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.f-line{width:14px;height:1px;background:#d0cce8}
+.f-title{font-size:18px;font-weight:500;color:#0f0f1a;letter-spacing:-.02em;margin-bottom:4px}
+.f-sub{font-size:11px;color:#a0a0c0;margin-bottom:24px;line-height:1.4}
+
+.f-field{margin-bottom:14px}
+.f-label{font-size:11px;font-weight:500;color:#52525B;margin-bottom:5px;display:block}
+.f-input{width:100%;height:36px;border-radius:8px;border:0.5px solid #ddd8f0;background:#fff;padding:0 12px;font-size:12px;color:#0f0f1a;outline:none;font-family:var(--font-sans)}
+.f-input:focus{border-color:#7F77DD;box-shadow:0 0 0 3px rgba(127,119,221,.12)}
+.f-input::placeholder{color:#c0b8e8}
+
+.f-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.f-check{display:flex;align-items:center;gap:6px;font-size:11px;color:#71717A;cursor:pointer}
+.f-check-box{width:14px;height:14px;border-radius:4px;border:0.5px solid #c0b8e8;background:#fff;flex-shrink:0}
+.f-forgot{font-size:11px;color:#7F77DD;cursor:pointer}
+
+.f-cta{width:100%;height:38px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;letter-spacing:-.01em;margin-bottom:16px}
+
+.f-divider{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.f-div-line{flex:1;height:0.5px;background:#eeebf8}
+.f-div-text{font-size:10px;color:#c0b8e8}
+
+.f-social{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.soc-btn{height:34px;border-radius:8px;border:0.5px solid #e0dcf4;background:#fff;font-size:11px;color:#52525B;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-sans)}
+
+.f-signup{text-align:center;font-size:11px;color:#a0a0c0}
+.f-signup-link{color:#7F77DD;font-weight:500;cursor:pointer}
+
+.dot-g{background:#1D9E75}
+.dot-v{background:#7F77DD}
+.dot-o{background:#AFA9EC}
+</style>
+
+<h2 class="sr-only">Pantalla de login light mode para Persona AI Studio con sidebar violeta, CTA verde y formulario limpio.</h2>
+
+<div class="screen">
+
+  <div class="left">
+    <div class="left-top">
+      <div class="l-logo">
+        <div class="l-mark">PA</div>
+        <span class="l-name">Persona AI</span>
+      </div>
+      <div class="l-headline">Build smarter AI agents, faster</div>
+      <div class="l-sub">Deploy virtual agents in minutes. No code required.</div>
+      <div class="l-chips">
+        <div class="chip">
+          <div class="chip-dot dot-g"></div>
+          <div class="chip-text">Despliega agentes en minutos</div>
+        </div>
+        <div class="chip">
+          <div class="chip-dot dot-v"></div>
+          <div class="chip-text">180+ integraciones nativas</div>
+        </div>
+        <div class="chip">
+          <div class="chip-dot dot-o"></div>
+          <div class="chip-text">99.9% uptime garantizado</div>
+        </div>
+      </div>
+    </div>
+    <div class="l-footer">© 2026 Persona AI Studio · Todos los derechos reservados</div>
+  </div>
+
+  <div class="right">
+    <div class="form-wrap">
+      <div class="f-eyebrow"><div class="f-line"></div>OPERATIONS HUB</div>
+      <div class="f-title">Bienvenido de nuevo</div>
+      <div class="f-sub">Inicia sesión para acceder a tu workspace.</div>
+
+      <div class="f-field">
+        <label class="f-label">Correo electrónico</label>
+        <input class="f-input" type="email" placeholder="demo@example.com" />
+      </div>
+      <div class="f-field">
+        <label class="f-label">Contraseña</label>
+        <input class="f-input" type="password" placeholder="••••••••" />
+      </div>
+
+      <div class="f-row">
+        <label class="f-check">
+          <div class="f-check-box"></div>
+          Recordarme
+        </label>
+        <span class="f-forgot">¿Olvidaste tu contraseña?</span>
+      </div>
+
+      <button class="f-cta">Iniciar sesión</button>
+
+      <div class="f-divider">
+        <div class="f-div-line"></div>
+        <span class="f-div-text">o continúa con</span>
+        <div class="f-div-line"></div>
+      </div>
+
+      <div class="f-social">
+        <button class="soc-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" fill="#4285F4"/><path d="M7 3.8a3.1 3.1 0 012.2.9l1.6-1.6A5.4 5.4 0 007 1.5a5.5 5.5 0 00-4.9 3l1.9 1.5A3.3 3.3 0 017 3.8z" fill="#EA4335"/><path d="M12.4 7.1c0-.4 0-.7-.1-1H7v2h3a2.6 2.6 0 01-1.1 1.7l1.7 1.3a5.5 5.5 0 001.8-4z" fill="#FBBC05"/><path d="M3.9 8.4A3.3 3.3 0 013.6 7c0-.5.1-.9.3-1.4L2 4.2A5.5 5.5 0 001.5 7c0 .9.2 1.7.5 2.5l1.9-1.1z" fill="#34A853"/><path d="M7 12.5c1.4 0 2.6-.5 3.5-1.3L8.8 9.9A3.3 3.3 0 017 10.3a3.3 3.3 0 01-3.1-2.2L2 9.3A5.5 5.5 0 007 12.5z" fill="#EA4335"/></svg>
+          Google
+        </button>
+        <button class="soc-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect width="14" height="14" rx="4" fill="#24292e"/><path d="M7 1.5A5.5 5.5 0 001.5 7c0 2.43 1.57 4.49 3.75 5.22.27.05.37-.12.37-.26v-.93c-1.52.33-1.84-.73-1.84-.73-.25-.63-.61-.8-.61-.8-.5-.34.04-.33.04-.33.55.04.84.57.84.57.49.84 1.28.6 1.6.46.05-.36.19-.6.35-.74-1.22-.14-2.5-.61-2.5-2.71 0-.6.21-1.09.57-1.47-.06-.14-.25-.7.05-1.45 0 0 .47-.15 1.52.57a5.3 5.3 0 012.77 0c1.06-.72 1.52-.57 1.52-.57.3.75.11 1.31.05 1.45.36.38.57.87.57 1.47 0 2.11-1.28 2.57-2.51 2.71.2.17.37.51.37 1.02v1.52c0 .14.1.31.38.26A5.5 5.5 0 007 1.5z" fill="#fff"/></svg>
+          GitHub
+        </button>
+      </div>
+
+      <div class="f-signup">¿No tienes cuenta? <span class="f-signup-link">Regístrate gratis →</span></div>
+    </div>
+  </div>
+
+</div>

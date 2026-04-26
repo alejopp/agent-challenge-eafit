@@ -1,0 +1,6 @@
+apiVersion: v2
+name: persona-ai-creator
+description: Academic Persona AI Agent Builder platform for the Verana EAFIT challenge.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

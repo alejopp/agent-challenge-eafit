@@ -1,0 +1,101 @@
+replicaCount: 1
+
+image:
+  repository: your-dockerhub-user/eafit-persona-agent-creator
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 4000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: persona-ai.team-g.teams.eafit.testnet.verana.network
+  tlsSecret: persona-ai.team-g.teams.eafit.testnet.verana.network-cert
+
+env:
+  HOST: 0.0.0.0
+  PORT: "4000"
+  APP_URL: https://persona-ai.team-g.teams.eafit.testnet.verana.network
+  CLIENT_DEV_URL: https://persona-ai.team-g.teams.eafit.testnet.verana.network
+  DATABASE_PATH: ./data/persona-ai.sqlite
+  STORAGE_DIR: ./data
+  K8S_NAMESPACE: team-g
+  BASE_AGENT_DOMAIN: agents.team-g.teams.eafit.testnet.verana.network
+  HELM_RELEASE_PREFIX: persona
+  HELM_CHART_SOURCE: oci://registry-1.docker.io/io2060/hologram-generic-ai-agent-chart
+  HELM_CHART_VERSION: v1.11.2
+  ENABLE_HELM_DEPLOY: "true"
+  OLLAMA_BASE_URL: http://ollama.team-g.svc.cluster.local:11434/v1
+  OLLAMA_MODEL: llama3.1:8b
+  SHARED_REDIS_URL: redis://redis-master.team-g.svc.cluster.local:6379
+  SHARED_POSTGRES_HOST: postgres.team-g.svc.cluster.local
+  SHARED_POSTGRES_PORT: "5432"
+  SHARED_POSTGRES_USER: persona_agents
+  SHARED_POSTGRES_DATABASE: persona_agents
+  VERANA_ORG_VS_PUBLIC_URL: https://organization.eafit.testnet.verana.network
+  VERANA_ORG_VS_ADMIN_URL: https://admin.organization.eafit.testnet.verana.network
+  VERANA_CREDENTIAL_DEFINITION_ID: did:webvh:QmPZBrmehNXxY4eRL2a9F52sCfkQfToPHM8R427sNS2F1N:avatar.eafit.testnet.verana.network/resources/zQmdzYfqKe6ypc9NbRMHbCFvgnrqCwbWjBK2odKYrRePaTu
+  MCP_PUBLIC_BASE_URL: https://persona-ai.team-g.teams.eafit.testnet.verana.network
+
+appSecrets:
+  jwtSecret: change-me
+  sharedPostgresPassword: change-me
+  kubeconfig: ""
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClassName: csi-cinder-high-speed
+
+sharedServices:
+  postgres:
+    enabled: true
+    image: postgres:16-alpine
+    serviceName: postgres
+    port: 5432
+    storage:
+      size: 8Gi
+      storageClassName: csi-cinder-high-speed
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+  redis:
+    enabled: true
+    image: redis:7-alpine
+    serviceName: redis-master
+    port: 6379
+    storage:
+      size: 2Gi
+      storageClassName: csi-cinder-high-speed
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  ollama:
+    enabled: true
+    image: ollama/ollama:latest
+    serviceName: ollama
+    port: 11434
+    model: llama3.1:8b
+    storage:
+      enabled: true
+      size: 20Gi
+      storageClassName: csi-cinder-high-speed
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 2000m
+        memory: 6Gi
