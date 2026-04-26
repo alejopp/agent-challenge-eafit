@@ -1,22 +1,26 @@
-name: Deploy Example Agent
+name: Deploy Persona AI Creator
 
 on:
   workflow_dispatch:
-    inputs:
-      step:
-        description: "Which step to run"
-        required: true
-        type: choice
-        options:
-          - deploy
-          - get-credentials
-          - all
-        default: all
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy.yml"
+      - "web-app/**"
 
 jobs:
-  deploy-example-agent:
-    name: Deploy Example Agent VS
+  deploy-persona-ai-creator:
+    name: Build and Deploy Persona AI Creator
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      RELEASE_NAME: persona-ai-creator
+      CHART_PATH: ./web-app/helm/persona-ai-creator
+      IMAGE_NAME: eafit-persona-agent-creator
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,28 +31,39 @@ jobs:
             echo "::error::This workflow can only run on the main branch (current: ${GITHUB_REF_NAME})"
             exit 1
           fi
-          echo "NETWORK=testnet" >> "$GITHUB_ENV"
 
-      - name: Load configuration
+      - name: Prepare deployment variables
         run: |
-          set -a
-          source config.env
-          set +a
-          while IFS= read -r line; do
-            key="${line%%=*}"
-            echo "${key}=${!key}" >> "$GITHUB_ENV"
-          done < <(grep -E '^[A-Z_]+=' config.env)
+          NAMESPACE="${{ secrets.K8S_NAMESPACE }}"
+          if [ -z "$NAMESPACE" ]; then
+            NAMESPACE="team-g"
+          fi
 
-      - name: Parse deployment.yaml
-        run: |
-          CHART_SOURCE=$(yq '.chartSource' deployment.yaml)
-          CHART_VERSION=$(yq '.chartVersion' deployment.yaml)
-          CHART_NAMESPACE="${{ secrets.K8S_NAMESPACE }}"
-          RELEASE_NAME=$(yq '.nameOverride' deployment.yaml)
-          echo "CHART_SOURCE=${CHART_SOURCE}" >> "$GITHUB_ENV"
-          echo "CHART_VERSION=${CHART_VERSION}" >> "$GITHUB_ENV"
-          echo "CHART_NAMESPACE=${CHART_NAMESPACE}" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=${RELEASE_NAME}" >> "$GITHUB_ENV"
+          IMAGE_REPOSITORY="${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE_NAME}"
+          IMAGE_TAG="${GITHUB_SHA::12}"
+
+          echo "NAMESPACE=$NAMESPACE" >> "$GITHUB_ENV"
+          echo "IMAGE_REPOSITORY=$IMAGE_REPOSITORY" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web-app
+          file: ./web-app/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_REPOSITORY }}:latest
 
       - name: Set up kubeconfig
         run: |
@@ -56,137 +71,62 @@ jobs:
           cat > ~/.kube/config <<'KUBEEOF'
           ${{ secrets.OVH_KUBECONFIG }}
           KUBEEOF
+          chmod 600 ~/.kube/config
+
+      - name: Save kubeconfig for Helm secret
+        run: |
+          mkdir -p /tmp/persona-ai
+          cat > /tmp/persona-ai/team-g-kubeconfig.yaml <<'KUBEEOF'
+          ${{ secrets.OVH_KUBECONFIG }}
+          KUBEEOF
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
         with:
-          version: 'v1.29.9'
+          version: "v1.29.9"
 
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
-          version: 'v3.14.0'
+          version: "v3.14.0"
 
-      # -----------------------------------------------------------------------
-      # DEPLOY: Install/upgrade via Helm (hologram-generic-ai-agent-chart)
-      # -----------------------------------------------------------------------
-      - name: Create K8s secrets
-        if: inputs.step == 'deploy' || inputs.step == 'all'
+      - name: Validate Helm chart
         run: |
-          NAMESPACE="${CHART_NAMESPACE}"
+          helm template "$RELEASE_NAME" "$CHART_PATH" \
+            --set image.repository="$IMAGE_REPOSITORY" \
+            --set image.tag="$IMAGE_TAG" \
+            --set appSecrets.jwtSecret="${{ secrets.APP_JWT_SECRET }}" \
+            --set appSecrets.sharedPostgresPassword="${{ secrets.SHARED_POSTGRES_PASSWORD }}" \
+            --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml > /tmp/persona-ai/rendered.yaml
 
-          # VS Agent DB secret
-          VSAGENT_DB_PWD="${{ secrets.EXAMPLE_AGENT_VSAGENT_DB_PASSWORD }}"
-          if [ -z "$VSAGENT_DB_PWD" ]; then
-            VSAGENT_DB_PWD="$(openssl rand -hex 16)"
-            echo "::warning::EXAMPLE_AGENT_VSAGENT_DB_PASSWORD secret not set — using generated password"
-          fi
-          kubectl create secret generic alejo-agent-db-secret \
+      - name: Deploy Persona AI Creator
+        run: |
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+          helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
             --namespace "$NAMESPACE" \
-            --from-literal=POSTGRES_PASSWORD="$VSAGENT_DB_PWD" \
-            --dry-run=client -o yaml | kubectl apply -f -
+            --set image.repository="$IMAGE_REPOSITORY" \
+            --set image.tag="$IMAGE_TAG" \
+            --set appSecrets.jwtSecret="${{ secrets.APP_JWT_SECRET }}" \
+            --set appSecrets.sharedPostgresPassword="${{ secrets.SHARED_POSTGRES_PASSWORD }}" \
+            --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml \
+            --wait --timeout 10m
 
-      - name: Create agent pack ConfigMap
-        if: inputs.step == 'deploy' || inputs.step == 'all'
-        run: |
-          kubectl create configmap alejo-agent-agent-pack \
-            --namespace "$CHART_NAMESPACE" \
-            --from-file=agent-pack.yaml=agent-pack.yaml \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Deploy via Helm
-        if: inputs.step == 'deploy' || inputs.step == 'all'
-        run: |
-          # Strip chart metadata before passing to Helm
-          yq 'del(.chartSource, .chartVersion)' deployment.yaml > /tmp/helm-values.yaml
-
-          # Inject credential definition ID from config.env
-          export CREDENTIAL_DEFINITION_ID
-          yq -i '.credentialDefinitionId = env(CREDENTIAL_DEFINITION_ID)' /tmp/helm-values.yaml
-
-          helm upgrade --install "$RELEASE_NAME" "$CHART_SOURCE" \
-            --version "$CHART_VERSION" \
-            --namespace "$CHART_NAMESPACE" \
-            --values /tmp/helm-values.yaml \
-            --set chatbot.secret.OPENAI_API_KEY="${{ secrets.EXAMPLE_AGENT_OPENAI_API_KEY }}" \
-            --set chatbot.secret.MCP_CONFIG_ENCRYPTION_KEY="${{ secrets.EXAMPLE_AGENT_MCP_CONFIG_ENCRYPTION_KEY }}" \
-            --set chatbot.secret.POSTGRES_PASSWORD="${{ secrets.EXAMPLE_AGENT_POSTGRES_PASSWORD }}" \
-            --set postgres.secret.POSTGRES_PASSWORD="${{ secrets.EXAMPLE_AGENT_POSTGRES_PASSWORD }}" \
-            --set vs-agent-chart.extraEnv[0].name=AGENT_WALLET_ID \
-            --set vs-agent-chart.extraEnv[0].value="Alejo Agent" \
-            --set vs-agent-chart.extraEnv[1].name=AGENT_WALLET_KEY \
-            --set vs-agent-chart.extraEnv[1].value="${{ secrets.EXAMPLE_AGENT_WALLET_KEY }}" \
-            --wait --timeout 300s
-
-      - name: Restart chatbot to pick up ConfigMap changes
-        if: inputs.step == 'deploy' || inputs.step == 'all'
-        run: |
-          kubectl rollout restart statefulset/alejo-agent-chart-chatbot -n "$CHART_NAMESPACE"
-          kubectl rollout status statefulset/alejo-agent-chart-chatbot -n "$CHART_NAMESPACE" --timeout=120s
-
-      # -----------------------------------------------------------------------
-      # GET-CREDENTIALS: Obtain Service credential from eafit-challenge organization
-      # -----------------------------------------------------------------------
-      - name: Port-forward Example Agent VS Agent
-        if: inputs.step == 'get-credentials' || inputs.step == 'all'
-        run: |
-          kubectl port-forward -n "$CHART_NAMESPACE" "svc/alejo-agent" 3002:3000 &
-          echo "CHILD_PF_PID=$!" >> "$GITHUB_ENV"
-          sleep 5
-          curl -sf http://localhost:3002/v1/agent > /dev/null || {
-            echo "::error::Port-forward to Example Agent VS-Agent failed"
-            exit 1
-          }
-          echo "Port-forward to Example Agent VS-Agent on :3002"
-
-      - name: Get Service credential
-        if: inputs.step == 'get-credentials' || inputs.step == 'all'
-        run: |
-          ORG_ADMIN_API="${ORG_VS_ADMIN_URL}"
-          CHILD_ADMIN_API="http://localhost:3002"
-          source common/common.sh
-          set_network_vars "$NETWORK"
-
-          CHILD_DID=$(curl -sf "${CHILD_ADMIN_API}/v1/agent" | jq -r '.publicDid')
-          echo "Example Agent DID: $CHILD_DID"
-
-          CHILD_PUBLIC_URL="${AGENT_PUBLIC_URL}"
-          if has_linked_vp "$CHILD_PUBLIC_URL" "service"; then
-            ok "Service credential already linked — skipping"
-          else
-            SERVICE_VTJSC_OUTPUT=$(discover_ecs_vtjsc "$ECS_TR_PUBLIC_URL" "service")
-            SERVICE_JSC_URL=$(echo "$SERVICE_VTJSC_OUTPUT" | sed -n '1p')
-
-            download_logo_data_uri "$SERVICE_LOGO_URL" > /tmp/service_logo_data_uri
-
-            SERVICE_CLAIMS=$(jq -n \
-              --rawfile logo /tmp/service_logo_data_uri \
-              --arg id "$CHILD_DID" \
-              --arg name "$SERVICE_NAME" \
-              --arg type "${SERVICE_TYPE:-AIAgent}" \
-              --arg desc "$SERVICE_DESCRIPTION" \
-              --argjson age "${SERVICE_MIN_AGE:-0}" \
-              --arg terms "${SERVICE_TERMS:-}" \
-              --arg privacy "${SERVICE_PRIVACY:-}" \
-              '{id: $id, name: $name, type: $type, description: $desc, logo: ($logo | rtrimstr("\n")), minimumAgeRequired: $age, termsAndConditions: $terms, privacyPolicy: $privacy}')
-
-            issue_remote_and_link "$ORG_ADMIN_API" "$CHILD_ADMIN_API" "service" "$SERVICE_JSC_URL" "$CHILD_DID" "$SERVICE_CLAIMS"
-          fi
-
-      # -----------------------------------------------------------------------
-      # CLEANUP
-      # -----------------------------------------------------------------------
-      - name: Stop port-forwards
+      - name: Show deployed resources
         if: always()
         run: |
-          [ -n "${CHILD_PF_PID:-}" ] && kill "$CHILD_PF_PID" 2>/dev/null || true
-          [ -n "${ORG_PF_PID:-}" ] && kill "$ORG_PF_PID" 2>/dev/null || true
+          kubectl get pods -n "$NAMESPACE" -o wide || true
+          kubectl get svc -n "$NAMESPACE" || true
+          kubectl get deploy,statefulset,pvc -n "$NAMESPACE" || true
 
       - name: Summary
         if: always()
         run: |
-          echo "## Alejo Agent VS" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **VS Agent:** https://alejo-agent.eafit.testnet.verana.network/.well-known/did.json" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Network:** testnet" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Chart:** ${CHART_SOURCE:-}:${CHART_VERSION:-}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Persona AI Creator Deployment"
+            echo ""
+            echo "- Namespace: \`$NAMESPACE\`"
+            echo "- Release: \`$RELEASE_NAME\`"
+            echo "- Image: \`$IMAGE_REPOSITORY:$IMAGE_TAG\`"
+            echo "- Chart: \`$CHART_PATH\`"
+          } >> "$GITHUB_STEP_SUMMARY"
