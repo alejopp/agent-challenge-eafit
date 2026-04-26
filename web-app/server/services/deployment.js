@@ -22,7 +22,7 @@ function buildMcpServers(bot, config) {
 }
 
 function buildAgentPack(bot, config) {
-  const schemaName = getSchemaName(bot, config);
+  const botDatabaseName = getBotDatabaseName(bot);
   return {
     metadata: {
       id: bot.slug,
@@ -89,20 +89,21 @@ function buildAgentPack(bot, config) {
         adminUrl: `http://${bot.releaseName}.${config.k8sNamespace}:3000`
       },
       postgres: {
-        host: config.sharedPostgresHost,
+        host: getBotPostgresHost(bot, config),
         user: config.sharedPostgresUser,
         password: config.sharedPostgresPassword,
-        dbName: config.sharedPostgresDatabase,
-        schema: schemaName
+        dbName: botDatabaseName,
+        schema: 'public'
       }
     }
   };
 }
 
 function buildHelmValues(bot, config) {
-  const schemaName = getSchemaName(bot, config);
-  const redisHost = getRedisHost(config.sharedRedisUrl);
-  const pgOptions = `-c search_path=${schemaName},public`;
+  const botDatabaseName = getBotDatabaseName(bot);
+  const botPostgresHost = getBotPostgresHost(bot, config);
+  const botRedisHost = getBotRedisHost(bot, config);
+  const botVsAgentAdminUrl = getBotVsAgentAdminUrl(bot, config);
   const openAiCompatApiKey = 'ollama-local-placeholder';
 
   return {
@@ -114,10 +115,16 @@ function buildHelmValues(bot, config) {
     nameOverride: bot.releaseName,
     credentialDefinitionId: config.credentialDefinitionId,
     redis: {
-      enabled: false
+      enabled: true
     },
     postgres: {
-      enabled: false
+      enabled: true,
+      env: [{ name: 'PGDATA', value: '/var/lib/postgresql/data/pgdata' }],
+      secret: {
+        POSTGRES_PASSWORD: config.sharedPostgresPassword,
+        POSTGRES_USER: config.sharedPostgresUser,
+        POSTGRES_DB: botDatabaseName
+      }
     },
     chatbot: {
       replicas: 1,
@@ -134,13 +141,10 @@ function buildHelmValues(bot, config) {
         { name: 'VECTOR_INDEX_NAME', value: bot.slug.replace(/-/g, '_') },
         { name: 'AGENT_MEMORY_BACKEND', value: 'redis' },
         { name: 'AGENT_MEMORY_WINDOW', value: '20' },
-        { name: 'REDIS_URL', value: config.sharedRedisUrl },
-        { name: 'POSTGRES_HOST', value: config.sharedPostgresHost },
-        { name: 'POSTGRES_PORT', value: String(config.sharedPostgresPort) },
-        { name: 'POSTGRES_SCHEMA', value: schemaName },
-        { name: 'TYPEORM_SCHEMA', value: schemaName },
-        { name: 'DATABASE_SCHEMA', value: schemaName },
-        { name: 'PGOPTIONS', value: pgOptions },
+        { name: 'REDIS_URL', value: `redis://${botRedisHost}:6379` },
+        { name: 'VS_AGENT_ADMIN_URL', value: botVsAgentAdminUrl },
+        { name: 'POSTGRES_HOST', value: botPostgresHost },
+        { name: 'POSTGRES_PORT', value: '5432' },
         { name: 'CREDENTIAL_DEFINITION_ID', value: config.credentialDefinitionId }
       ],
       agentPack: {
@@ -157,7 +161,7 @@ function buildHelmValues(bot, config) {
         OPENAI_API_KEY: openAiCompatApiKey,
         POSTGRES_PASSWORD: config.sharedPostgresPassword,
         POSTGRES_USER: config.sharedPostgresUser,
-        POSTGRES_DB_NAME: config.sharedPostgresDatabase
+        POSTGRES_DB_NAME: botDatabaseName
       }
     },
     stats: {
@@ -170,7 +174,7 @@ function buildHelmValues(bot, config) {
       eventsBaseUrl: `http://${bot.releaseName}-chatbot:3003`,
       database: {
         enabled: false,
-        host: config.sharedPostgresHost,
+        host: botPostgresHost,
         user: config.sharedPostgresUser,
         pwd: config.sharedPostgresPassword
       },
@@ -180,16 +184,14 @@ function buildHelmValues(bot, config) {
         { name: 'AGENT_LOG_LEVEL', value: '3' },
         { name: 'ANONCREDS_SERVICE_BASE_URL', value: 'https://chatbot.dev.2060.io' },
         { name: 'REDIRECT_DEFAULT_URL_TO_INVITATION_URL', value: 'true' },
-        { name: 'POSTGRES_HOST', value: config.sharedPostgresHost },
-        { name: 'POSTGRES_PORT', value: String(config.sharedPostgresPort) },
+        { name: 'POSTGRES_HOST', value: botPostgresHost },
+        { name: 'POSTGRES_PORT', value: '5432' },
         { name: 'POSTGRES_USER', value: config.sharedPostgresUser },
         { name: 'POSTGRES_PASSWORD', value: config.sharedPostgresPassword },
-        { name: 'POSTGRES_DB', value: config.sharedPostgresDatabase },
-        { name: 'POSTGRES_DB_NAME', value: config.sharedPostgresDatabase },
-        { name: 'POSTGRES_DATABASE', value: config.sharedPostgresDatabase },
-        { name: 'POSTGRES_SCHEMA', value: schemaName },
-        { name: 'PGOPTIONS', value: pgOptions },
-        { name: 'REDIS_HOST', value: redisHost }
+        { name: 'POSTGRES_DB', value: botDatabaseName },
+        { name: 'POSTGRES_DB_NAME', value: botDatabaseName },
+        { name: 'POSTGRES_DATABASE', value: botDatabaseName },
+        { name: 'REDIS_HOST', value: botRedisHost }
       ],
       ingress: {
         host: `${bot.slug}.${config.baseAgentDomain}`,
@@ -199,26 +201,26 @@ function buildHelmValues(bot, config) {
   };
 }
 
-function getSchemaName(bot, config) {
-  const suffix = bot.slug.replace(/-/g, '_');
-  return `${config.sharedPostgresSchemaPrefix}_${suffix}`.slice(0, 63);
+function getBotDatabaseName(bot) {
+  return bot.slug.replace(/-/g, '_').slice(0, 63);
 }
 
-function getRedisHost(redisUrl) {
-  try {
-    return new URL(redisUrl).hostname;
-  } catch {
-    return 'redis-master.team-g.svc.cluster.local';
-  }
+function getBotPostgresHost(bot, config) {
+  return `${bot.releaseName}-postgres.${config.k8sNamespace}`;
+}
+
+function getBotRedisHost(bot, config) {
+  return `${bot.releaseName}-redis.${config.k8sNamespace}`;
+}
+
+function getBotVsAgentAdminUrl(bot, config) {
+  return `http://${bot.releaseName}.${config.k8sNamespace}:3000`;
 }
 
 function validateSharedInfrastructure(config) {
   const required = [
-    ['SHARED_POSTGRES_HOST', config.sharedPostgresHost],
-    ['SHARED_POSTGRES_USER', config.sharedPostgresUser],
     ['SHARED_POSTGRES_PASSWORD', config.sharedPostgresPassword],
-    ['SHARED_POSTGRES_DATABASE', config.sharedPostgresDatabase],
-    ['SHARED_REDIS_URL', config.sharedRedisUrl],
+    ['SHARED_POSTGRES_USER', config.sharedPostgresUser],
     ['OLLAMA_BASE_URL', config.ollamaBaseUrl],
     ['OLLAMA_MODEL', config.ollamaModel],
     ['MCP_PUBLIC_BASE_URL', config.mcpPublicBaseUrl]
@@ -227,44 +229,6 @@ function validateSharedInfrastructure(config) {
   const missing = required.filter(([, value]) => !value).map(([key]) => key);
   if (missing.length) {
     throw new Error(`Missing shared infrastructure configuration: ${missing.join(', ')}`);
-  }
-}
-
-function ensureSharedPostgresSchema(bot, config) {
-  const schemaName = getSchemaName(bot, config);
-  const env = {
-    ...process.env,
-    PGPASSWORD: config.sharedPostgresPassword
-  };
-
-  const sql = [
-    `CREATE SCHEMA IF NOT EXISTS "${schemaName}";`,
-    `GRANT USAGE ON SCHEMA "${schemaName}" TO ${config.sharedPostgresUser};`,
-    `GRANT CREATE ON SCHEMA "${schemaName}" TO ${config.sharedPostgresUser};`,
-    `ALTER ROLE ${config.sharedPostgresUser} IN DATABASE ${config.sharedPostgresDatabase} SET search_path TO "${schemaName}", public;`
-  ].join(' ');
-
-  const result = spawnSync(
-    'psql',
-    [
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-h',
-      config.sharedPostgresHost,
-      '-p',
-      String(config.sharedPostgresPort),
-      '-U',
-      config.sharedPostgresUser,
-      '-d',
-      config.sharedPostgresDatabase,
-      '-c',
-      sql
-    ],
-    { env, encoding: 'utf-8' }
-  );
-
-  if (result.status !== 0) {
-    throw new Error(result.stderr || result.stdout || 'Shared Postgres schema bootstrap failed.');
   }
 }
 
@@ -303,7 +267,6 @@ function runHelm(action, bot, config, botDir) {
 
   if (action === 'publish') {
     validateSharedInfrastructure(config);
-    ensureSharedPostgresSchema(bot, config);
 
     const valuesFile = path.join(botDir, 'values.generated.yaml');
     const configMapName = `${bot.releaseName}-agent-pack`;
