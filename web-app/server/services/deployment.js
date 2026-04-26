@@ -350,7 +350,6 @@ function runHelm(action, bot, config, botDir) {
         config.helmChartVersion,
         '--namespace',
         config.k8sNamespace,
-        '--create-namespace',
         '--values',
         valuesFile
       ],
