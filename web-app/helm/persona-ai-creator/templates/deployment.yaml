@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: {{ include "persona-ai-creator.fullname" . }}
 spec:
+  strategy:
+    type: Recreate
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
