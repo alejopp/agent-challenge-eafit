@@ -11,11 +11,10 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 RUN apk add --no-cache bash curl helm kubectl postgresql-client
+RUN mkdir -p /app/data/uploads /app/generated
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/client ./client
-COPY --from=builder /app/data ./data
-COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/helm ./helm
 EXPOSE 4000
