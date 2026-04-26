@@ -123,7 +123,7 @@ When `ENABLE_HELM_DEPLOY=false`, publishing works as a dry-run and still generat
 ### Deployment flow
 
 1. Create a Docker Hub repository such as `your-user/eafit-persona-agent-creator`.
-2. Update the default image repository in [web-app/helm/persona-ai-creator/values.yaml](web-app/helm/persona-ai-creator/values.yaml) if needed.
+2. Set `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `OVH_KUBECONFIG`, `K8S_NAMESPACE`, `APP_JWT_SECRET`, and `SHARED_POSTGRES_PASSWORD` in GitHub Actions secrets.
 3. Push to `main`.
 4. GitHub Actions will:
    - build the image
@@ -143,8 +143,8 @@ helm upgrade --install persona-ai-creator ./helm/persona-ai-creator \
   --create-namespace \
   --set image.repository=your-user/eafit-persona-agent-creator \
   --set image.tag=latest \
-  --set appSecrets.jwtSecret=change-me \
-  --set appSecrets.sharedPostgresPassword=change-me \
+  --set appSecrets.jwtSecret='<real-jwt-secret>' \
+  --set appSecrets.sharedPostgresPassword='<real-postgres-password>' \
   --set-file appSecrets.kubeconfig=./secrets/team-g-kubeconfig.yaml
 ```
 

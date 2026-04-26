@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: your-dockerhub-user/eafit-persona-agent-creator
+  repository: ""
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -42,8 +42,8 @@ env:
   MCP_PUBLIC_BASE_URL: https://persona-ai.team-g.teams.eafit.testnet.verana.network
 
 appSecrets:
-  jwtSecret: change-me
-  sharedPostgresPassword: change-me
+  jwtSecret: ""
+  sharedPostgresPassword: ""
   kubeconfig: ""
 
 persistence:
