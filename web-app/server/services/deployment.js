@@ -17,7 +17,7 @@ function buildMcpServers(bot, config) {
   return bot.mcpServices.map((serviceId) => ({
     name: serviceId,
     transport: 'streamable-http',
-    url: `${config.mcpPublicBaseUrl.replace(/\/$/, '')}/api/mcp/${serviceId}`
+    url: `${(config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '')}/api/mcp/${serviceId}`
   }));
 }
 

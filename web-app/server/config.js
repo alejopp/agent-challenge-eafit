@@ -23,7 +23,7 @@ export const config = {
   helmChartVersion: process.env.HELM_CHART_VERSION || 'v1.11.2',
   enableHelmDeploy: process.env.ENABLE_HELM_DEPLOY === 'true',
   ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://ollama.team-g.svc.cluster.local:11434/v1',
-  ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1:8b',
+  ollamaModel: process.env.OLLAMA_MODEL || 'llama3.2:1b',
   sharedRedisUrl:
     process.env.SHARED_REDIS_URL || 'redis://redis-master.team-g.svc.cluster.local:6379',
   sharedPostgresHost: process.env.SHARED_POSTGRES_HOST || 'postgres.team-g.svc.cluster.local',
@@ -41,5 +41,8 @@ export const config = {
     process.env.VERANA_CREDENTIAL_DEFINITION_ID ||
     'did:webvh:QmPZBrmehNXxY4eRL2a9F52sCfkQfToPHM8R427sNS2F1N:avatar.eafit.testnet.verana.network/resources/zQmdzYfqKe6ypc9NbRMHbCFvgnrqCwbWjBK2odKYrRePaTu',
   mcpPublicBaseUrl: process.env.MCP_PUBLIC_BASE_URL || process.env.APP_URL || 'http://localhost:4000',
+  mcpInternalBaseUrl:
+    process.env.MCP_INTERNAL_BASE_URL ||
+    `http://persona-ai-creator.${process.env.K8S_NAMESPACE || 'team-g'}.svc.cluster.local`,
   llmProvider: process.env.LLM_PROVIDER || 'ollama'
 };
