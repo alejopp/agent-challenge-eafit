@@ -25,6 +25,7 @@ env:
   STORAGE_DIR: ./data
   K8S_NAMESPACE: team-g
   BASE_AGENT_DOMAIN: agents.team-g.teams.eafit.testnet.verana.network
+  BASE_AGENT_TLS_SECRET: agents.team-g.teams.eafit.testnet.verana.network-cert
   HELM_RELEASE_PREFIX: persona
   HELM_CHART_SOURCE: oci://registry-1.docker.io/io2060/hologram-generic-ai-agent-chart
   HELM_CHART_VERSION: v1.11.2

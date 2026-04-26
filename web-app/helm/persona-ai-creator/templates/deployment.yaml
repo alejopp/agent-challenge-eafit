@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: "{{ required "image.repository is required" .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ printf "%s:%s" (required "image.repository is required" .Values.image.repository) .Values.image.tag | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
@@ -32,12 +32,35 @@ spec:
                 secretKeyRef:
                   name: {{ include "persona-ai-creator.fullname" . }}-secret
                   key: SHARED_POSTGRES_PASSWORD
+            - name: KUBECONFIG
+              value: "/app/secrets/team-g-kubeconfig.yaml"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
           volumeMounts:
             - name: secrets
               mountPath: /app/secrets
               readOnly: true
             - name: data
               mountPath: /app/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
       volumes:
         - name: secrets
           secret:

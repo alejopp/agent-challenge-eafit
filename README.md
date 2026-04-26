@@ -77,6 +77,7 @@ cp .env.example .env
 ENABLE_HELM_DEPLOY=true
 KUBECONFIG_PATH=./secrets/team-g-kubeconfig.yaml
 MCP_PUBLIC_BASE_URL=http://localhost:4000
+BASE_AGENT_TLS_SECRET=agents.team-g.teams.eafit.testnet.verana.network-cert
 ```
 
 4. Install dependencies:
@@ -116,7 +117,7 @@ When `ENABLE_HELM_DEPLOY=false`, publishing works as a dry-run and still generat
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
-- `KUBE_CONFIG`
+- `OVH_KUBECONFIG`
 - `APP_JWT_SECRET`
 - `SHARED_POSTGRES_PASSWORD`
 

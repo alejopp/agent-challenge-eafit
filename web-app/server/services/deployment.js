@@ -193,7 +193,7 @@ function buildHelmValues(bot, config) {
       ],
       ingress: {
         host: `${bot.slug}.${config.baseAgentDomain}`,
-        tlsSecret: `persona-agents.eafit.testnet.verana.network-cert`
+        tlsSecret: config.baseAgentTlsSecret
       }
     }
   };
