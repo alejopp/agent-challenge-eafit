@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import * as z from 'zod/v4';
 
 async function fetchJson(url) {
   const response = await fetch(url, {
@@ -50,6 +53,87 @@ async function runWikipedia(query) {
   };
 }
 
+const MCP_SERVICES = {
+  weather: {
+    name: 'weather',
+    title: 'Weather MCP',
+    description: 'Checks forecast conditions for appointments and outdoor services.',
+    toolName: 'get_forecast',
+    inputSchema: {
+      location: z.string().min(1).describe('City or location to forecast')
+    },
+    handler: async ({ location }) => runWeather(location)
+  },
+  wikipedia: {
+    name: 'wikipedia',
+    title: 'Wikipedia MCP',
+    description: 'Searches encyclopedia articles to answer general knowledge questions.',
+    toolName: 'search_article',
+    inputSchema: {
+      query: z.string().min(1).describe('Article topic to search')
+    },
+    handler: async ({ query }) => runWikipedia(query)
+  }
+};
+
+function createToolResult(result) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(result, null, 2)
+      }
+    ]
+  };
+}
+
+function getServiceDefinition(serviceId) {
+  return MCP_SERVICES[serviceId] || null;
+}
+
+function createMcpServer(serviceId) {
+  const service = getServiceDefinition(serviceId);
+
+  if (!service) {
+    return null;
+  }
+
+  const server = new McpServer(
+    {
+      name: `${service.name}-mcp-server`,
+      version: '1.0.0'
+    },
+    {
+      capabilities: {
+        tools: {}
+      }
+    }
+  );
+
+  server.registerTool(
+    service.toolName,
+    {
+      title: service.title,
+      description: service.description,
+      inputSchema: service.inputSchema
+    },
+    async (args) => createToolResult(await service.handler(args))
+  );
+
+  return server;
+}
+
+function sendJsonRpcError(res, status, message, id = null, code = -32000) {
+  return res.status(status).json({
+    jsonrpc: '2.0',
+    error: {
+      code,
+      message
+    },
+    id
+  });
+}
+
 export function mcpRouter() {
   const router = Router();
 
@@ -73,29 +157,45 @@ export function mcpRouter() {
   });
 
   router.post('/:serviceId', async (req, res) => {
+    const server = createMcpServer(req.params.serviceId);
+
+    if (!server) {
+      return sendJsonRpcError(res, 404, 'MCP service not found.', req.body?.id ?? null, -32601);
+    }
+
     try {
-      const { serviceId } = req.params;
-      const args = req.body?.arguments || {};
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+        enableJsonResponse: true
+      });
 
-      if (serviceId === 'weather') {
-        return res.json({
-          tool: 'get_forecast',
-          result: await runWeather(args.location || 'Medellin')
-        });
-      }
-
-      if (serviceId === 'wikipedia') {
-        return res.json({
-          tool: 'search_article',
-          result: await runWikipedia(args.query || 'Verana')
-        });
-      }
-
-      return res.status(404).json({ error: 'MCP service not found.' });
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+      return res;
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      console.error('Error handling MCP request:', error);
+
+      if (!res.headersSent) {
+        return sendJsonRpcError(
+          res,
+          500,
+          error instanceof Error ? error.message : 'Internal server error',
+          req.body?.id ?? null,
+          -32603
+        );
+      }
+    } finally {
+      await server.close();
     }
   });
+
+  router.get('/:serviceId', (req, res) =>
+    sendJsonRpcError(res, 405, 'Method not allowed. Use POST.', req.body?.id ?? null)
+  );
+
+  router.delete('/:serviceId', (req, res) =>
+    sendJsonRpcError(res, 405, 'Method not allowed. Use POST.', req.body?.id ?? null)
+  );
 
   return router;
 }
