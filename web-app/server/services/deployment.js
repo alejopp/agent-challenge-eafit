@@ -264,7 +264,7 @@ function writeBotAssets(bot, config) {
               ],
               command: ['/bin/sh', '-c'],
               args: [
-                `psql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_roles WHERE rolname='${botDatabaseName}'" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c "CREATE USER \\"${botDatabaseName}\\" WITH PASSWORD '${config.sharedPostgresPassword}';"\npsql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_database WHERE datname = '${botDatabaseName}'" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE \\"${botDatabaseName}\\" OWNER \\"${botDatabaseName}\\";"`
+                `psql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_roles WHERE rolname='${botDatabaseName}'" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c "CREATE USER \\"${botDatabaseName}\\" WITH PASSWORD '${config.sharedPostgresPassword}' CREATEDB;"\npsql -v ON_ERROR_STOP=1 -c "ALTER USER \\"${botDatabaseName}\\" CREATEDB;"\npsql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_database WHERE datname = '${botDatabaseName}'" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE \\"${botDatabaseName}\\" OWNER \\"${botDatabaseName}\\";"`
               ]
             }
           ]
