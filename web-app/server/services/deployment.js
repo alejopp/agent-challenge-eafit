@@ -385,6 +385,26 @@ function runHelm(action, bot, config, botDir) {
       ],
       { env: helmEnv, encoding: 'utf-8' }
     );
+
+    // Workaround for external chart bug: The chart doesn't wrap the Postgres StatefulSet, 
+    // Service, and PVC with an if-condition, so it always deploys them even when disabled.
+    // We forcefully clean them up right after the Helm release finishes.
+    if (result.status === 0) {
+      spawnSync(
+        'kubectl',
+        [
+          'delete',
+          'statefulset,svc,pvc',
+          '-l',
+          `app.kubernetes.io/component=postgres,app.kubernetes.io/instance=${bot.releaseName}`,
+          '--namespace',
+          config.k8sNamespace,
+          '--ignore-not-found'
+        ],
+        { env: helmEnv, encoding: 'utf-8' }
+      );
+    }
+
     return result;
   }
 
