@@ -90,7 +90,7 @@ function buildAgentPack(bot, config) {
       },
       postgres: {
         host: getBotPostgresHost(bot, config),
-        user: config.sharedPostgresUser,
+        user: botDatabaseName,
         password: config.sharedPostgresPassword,
         dbName: botDatabaseName,
         schema: 'public'
@@ -118,13 +118,7 @@ function buildHelmValues(bot, config) {
       enabled: true
     },
     postgres: {
-      enabled: true,
-      env: [{ name: 'PGDATA', value: '/var/lib/postgresql/data/pgdata' }],
-      secret: {
-        POSTGRES_PASSWORD: config.sharedPostgresPassword,
-        POSTGRES_USER: config.sharedPostgresUser,
-        POSTGRES_DB: botDatabaseName
-      }
+      enabled: false
     },
     chatbot: {
       replicas: 1,
@@ -160,7 +154,7 @@ function buildHelmValues(bot, config) {
       secret: {
         OPENAI_API_KEY: openAiCompatApiKey,
         POSTGRES_PASSWORD: config.sharedPostgresPassword,
-        POSTGRES_USER: config.sharedPostgresUser,
+        POSTGRES_USER: botDatabaseName,
         POSTGRES_DB_NAME: botDatabaseName
       }
     },
@@ -175,7 +169,7 @@ function buildHelmValues(bot, config) {
       database: {
         enabled: false,
         host: botPostgresHost,
-        user: config.sharedPostgresUser,
+        user: botDatabaseName,
         pwd: config.sharedPostgresPassword
       },
       extraEnv: [
@@ -186,7 +180,7 @@ function buildHelmValues(bot, config) {
         { name: 'REDIRECT_DEFAULT_URL_TO_INVITATION_URL', value: 'true' },
         { name: 'POSTGRES_HOST', value: botPostgresHost },
         { name: 'POSTGRES_PORT', value: '5432' },
-        { name: 'POSTGRES_USER', value: config.sharedPostgresUser },
+        { name: 'POSTGRES_USER', value: botDatabaseName },
         { name: 'POSTGRES_PASSWORD', value: config.sharedPostgresPassword },
         { name: 'POSTGRES_DB', value: botDatabaseName },
         { name: 'POSTGRES_DB_NAME', value: botDatabaseName },
@@ -206,7 +200,7 @@ function getBotDatabaseName(bot) {
 }
 
 function getBotPostgresHost(bot, config) {
-  return `${bot.releaseName}-postgres.${config.k8sNamespace}`;
+  return config.sharedPostgresHost;
 }
 
 function getBotRedisHost(bot, config) {
@@ -236,11 +230,46 @@ function writeBotAssets(bot, config) {
   const botDir = path.join(config.rootDir, 'generated', bot.slug);
   fs.mkdirSync(botDir, { recursive: true });
 
+  const botDatabaseName = getBotDatabaseName(bot);
   const agentPack = YAML.stringify(buildAgentPack(bot, config));
   const helmValues = YAML.stringify(buildHelmValues(bot, config));
 
+  const dbSetupJob = YAML.stringify({
+    apiVersion: 'batch/v1',
+    kind: 'Job',
+    metadata: {
+      name: `${bot.releaseName}-db-setup`,
+      namespace: config.k8sNamespace
+    },
+    spec: {
+      backoffLimit: 3,
+      template: {
+        spec: {
+          restartPolicy: 'Never',
+          containers: [
+            {
+              name: 'db-setup',
+              image: 'postgres:16-alpine',
+              env: [
+                { name: 'PGHOST', value: config.sharedPostgresHost },
+                { name: 'PGPORT', value: String(config.sharedPostgresPort || 5432) },
+                { name: 'PGUSER', value: config.sharedPostgresUser },
+                { name: 'PGPASSWORD', value: config.sharedPostgresPassword }
+              ],
+              command: ['/bin/sh', '-c'],
+              args: [
+                `psql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_roles WHERE rolname='${botDatabaseName}'" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c "CREATE USER \\"${botDatabaseName}\\" WITH PASSWORD '${config.sharedPostgresPassword}';"\npsql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_database WHERE datname = '${botDatabaseName}'" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE \\"${botDatabaseName}\\" OWNER \\"${botDatabaseName}\\";"`
+              ]
+            }
+          ]
+        }
+      }
+    }
+  });
+
   fs.writeFileSync(path.join(botDir, 'agent-pack.yaml'), agentPack);
   fs.writeFileSync(path.join(botDir, 'values.generated.yaml'), helmValues);
+  fs.writeFileSync(path.join(botDir, 'db-setup-job.yaml'), dbSetupJob);
   fs.writeFileSync(
     path.join(botDir, 'release.json'),
     JSON.stringify(
@@ -267,6 +296,44 @@ function runHelm(action, bot, config, botDir) {
 
   if (action === 'publish') {
     validateSharedInfrastructure(config);
+
+    const dbJobFile = path.join(botDir, 'db-setup-job.yaml');
+    
+    // Create/update the database setup job
+    const jobResult = spawnSync(
+      'kubectl',
+      ['apply', '-f', dbJobFile, '--namespace', config.k8sNamespace],
+      { env: helmEnv, encoding: 'utf-8' }
+    );
+    if (jobResult.status !== 0) {
+      console.error('Failed to apply db-setup job:', jobResult.stderr || jobResult.stdout);
+      return jobResult;
+    }
+
+    // Wait for the database setup to complete
+    const jobWaitResult = spawnSync(
+      'kubectl',
+      [
+        'wait',
+        '--for=condition=complete',
+        `job/${bot.releaseName}-db-setup`,
+        '--namespace',
+        config.k8sNamespace,
+        '--timeout=120s'
+      ],
+      { env: helmEnv, encoding: 'utf-8' }
+    );
+    if (jobWaitResult.status !== 0) {
+      console.error('Failed waiting for db-setup job to complete:', jobWaitResult.stderr || jobWaitResult.stdout);
+      return jobWaitResult;
+    }
+
+    // Clean up job so it doesn't block future upgrades
+    spawnSync(
+      'kubectl',
+      ['delete', 'job', `${bot.releaseName}-db-setup`, '--namespace', config.k8sNamespace, '--ignore-not-found'],
+      { env: helmEnv, encoding: 'utf-8' }
+    );
 
     const valuesFile = path.join(botDir, 'values.generated.yaml');
     const configMapName = `${bot.releaseName}-agent-pack`;
