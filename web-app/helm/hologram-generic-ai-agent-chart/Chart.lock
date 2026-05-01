@@ -1,0 +1,6 @@
+dependencies:
+- name: vs-agent-chart
+  repository: oci://registry-1.docker.io/veranalabs
+  version: v1.9.2
+digest: sha256:a3becfa40662e7c42e066ee2e722eab2c477405f135c67e4c4eed8bf948adca0
+generated: "2026-04-10T20:05:20.125050235Z"

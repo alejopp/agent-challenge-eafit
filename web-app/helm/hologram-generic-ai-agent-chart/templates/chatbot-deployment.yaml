@@ -1,0 +1,149 @@
+{{- if .Values.chatbot.secret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "chatbot.fullname" . }}-chatbot-secret
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+stringData:
+  {{- range $key, $val := .Values.chatbot.secret }}
+  {{ $key }}: {{ tpl $val $ | quote }}
+  {{- end }}
+---
+{{- end }}
+{{- $pack := .Values.chatbot.agentPack }}
+{{- $packName := default "custom-pack" $pack.name }}
+{{- $packMountPath := default (printf "/app/agent-packs/%s" $packName) $pack.mountPath }}
+{{- $packFileName := default "agent-pack.yaml" $pack.fileName }}
+{{- $packConfigMap := default (printf "%s-agent-pack" (include "chatbot.fullname" .)) (tpl $pack.existingConfigMap $) }}
+{{- if and $pack.enabled (not $pack.existingConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $packConfigMap }}
+  namespace: {{ .Release.Namespace }}
+data:
+  {{ $packFileName }}: |
+{{ tpl $pack.content $ | indent 4 }}
+
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "chatbot.fullname" . }}-chatbot
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.chatbot.service.type }}
+  ports:
+    - port: {{ .Values.chatbot.service.port }}
+      targetPort: {{ .Values.chatbot.service.port }}
+      name: http
+  selector:
+    app.kubernetes.io/component: chatbot
+    {{- include "chatbot.selectorLabels" . | nindent 4 }}
+{{- if .Values.chatbot.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "chatbot.fullname" . }}-chatbot
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ tpl .Values.chatbot.ingress.host $ }}
+      secretName: {{ tpl .Values.chatbot.ingress.tlsSecret $ }}
+  rules:
+    - host: {{ tpl .Values.chatbot.ingress.host $ }}
+      http:
+        paths:
+          - path: {{ .Values.chatbot.ingress.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "chatbot.fullname" . }}-chatbot
+                port:
+                  number: {{ .Values.chatbot.service.port }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "chatbot.fullname" . }}-chatbot
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: chatbot
+    {{- include "chatbot.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "chatbot.fullname" . }}-chatbot
+  replicas: {{ .Values.chatbot.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: chatbot
+      {{- include "chatbot.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: chatbot
+        {{- include "chatbot.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: chatbot
+          image: {{ .Values.image.repository | default "io2060/hologram-generic-ai-agent-app" }}:{{ .Values.image.tag | default .Chart.Version }}
+          imagePullPolicy: {{ .Values.chatbot.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.chatbot.service.port }}
+              name: http
+          resources:
+            {{- toYaml .Values.chatbot.resources | nindent 12 }}
+          env:
+            {{- range .Values.chatbot.env }}
+            - name: {{ .name }}
+              {{- if .valueFrom }}
+              valueFrom:
+                {{- toYaml .valueFrom | nindent 16 }}
+              {{- else }}
+              value: {{ tpl .value $ | quote }}
+              {{- end }}
+            {{- end }}
+            {{- if $pack.enabled }}
+            - name: AGENT_PACK_PATH
+              value: {{ $packMountPath | quote }}
+            {{- end }}
+            {{- range $key, $val := .Values.chatbot.secret }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chatbot.fullname" $ }}-chatbot-secret
+                  key: {{ $key }}
+            {{- end }}
+          volumeMounts:
+            - name: pvc-{{ include "chatbot.fullname" . }}-chatbot
+              mountPath: /app/rag/docs
+            {{- if $pack.enabled }}
+            - name: agent-pack
+              mountPath: {{ $packMountPath }}
+              readOnly: true
+            {{- end }}
+      {{- if $pack.enabled }}
+      volumes:
+        - name: agent-pack
+          configMap:
+            name: {{ $packConfigMap }}
+            items:
+              - key: {{ $packFileName }}
+                path: {{ $packFileName }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: pvc-{{ include "chatbot.fullname" . }}-chatbot
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.chatbot.storage.size }}

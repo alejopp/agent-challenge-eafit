@@ -115,7 +115,7 @@ function buildHelmValues(bot, config) {
     nameOverride: bot.releaseName,
     credentialDefinitionId: config.credentialDefinitionId,
     redis: {
-      enabled: true
+      enabled: false
     },
     postgres: {
       enabled: false
@@ -204,7 +204,13 @@ function getBotPostgresHost(bot, config) {
 }
 
 function getBotRedisHost(bot, config) {
-  return `${bot.releaseName}-redis.${config.k8sNamespace}`;
+  // Parse the host from the shared Redis URL
+  try {
+    const url = new URL(config.sharedRedisUrl);
+    return url.hostname;
+  } catch (e) {
+    return 'redis-master.team-g.svc.cluster.local';
+  }
 }
 
 function getBotVsAgentAdminUrl(bot, config) {
@@ -385,25 +391,6 @@ function runHelm(action, bot, config, botDir) {
       ],
       { env: helmEnv, encoding: 'utf-8' }
     );
-
-    // Workaround for external chart bug: The chart doesn't wrap the Postgres StatefulSet, 
-    // Service, and PVC with an if-condition, so it always deploys them even when disabled.
-    // We forcefully clean them up right after the Helm release finishes.
-    if (result.status === 0) {
-      spawnSync(
-        'kubectl',
-        [
-          'delete',
-          'statefulset,svc,pvc',
-          '-l',
-          `app.kubernetes.io/component=postgres,app.kubernetes.io/instance=${bot.releaseName}`,
-          '--namespace',
-          config.k8sNamespace,
-          '--ignore-not-found'
-        ],
-        { env: helmEnv, encoding: 'utf-8' }
-      );
-    }
 
     return result;
   }

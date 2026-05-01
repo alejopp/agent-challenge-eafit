@@ -1,0 +1,267 @@
+# Service deployment for the VS Agent
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  selector:
+    app: {{ .Values.name }}
+  ports:
+  - name: didcomm
+    port: {{ .Values.didcommPort }}
+    targetPort: {{ .Values.didcommPort }}
+    protocol: TCP
+  - name: admin
+    port: {{ .Values.adminPort }}
+    targetPort: {{ .Values.adminPort }}
+    protocol: TCP
+  - name: db
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  - name: redis
+    port: 6379
+    targetPort: 6379
+    protocol: TCP
+---
+# Ingress resource for the VS Agent
+# This resource defines how external traffic can access the VS Agent service
+# It routes traffic to the agent service and provides TLS termination
+{{- if and .Values.ingress.private.host .Values.ingress.private.tlsSecret }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: private-{{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/enable-cors: "{{ .Values.ingress.private.enableCors | default "true" }}"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "{{ .Values.ingress.private.whitelistSourceRange }}"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ tpl .Values.ingress.private.host . }}
+      secretName: {{ tpl .Values.ingress.private.tlsSecret . }}
+  rules:
+    - host: {{ tpl .Values.ingress.private.host . }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                 name: {{ .Values.name }}
+                 port:
+                   number: {{ .Values.adminPort }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public-{{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/enable-cors: "{{ .Values.ingress.public.enableCors | default "true" }}"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ tpl .Values.ingress.host . }}
+      secretName: {{ tpl .Values.ingress.tlsSecret . }}
+  rules:
+    - host: {{ tpl .Values.ingress.host . }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                 name: {{ .Values.name }}
+                 port:
+                   number: {{ .Values.didcommPort }}
+---
+# PersistentVolumeClaim for the VS Agent
+# This PVC is used to store the agent's data and configuration
+# It is created with a storage class and size defined in the values.yaml file
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.name }}-vsa-pv
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.name }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  storageClassName: {{ .Values.storage.storageClassName | default "csi-cinder-high-speed" }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size | default "1Gi" }}
+---
+# PersistentVolumeClaim for the PostgreSQL database
+# This PVC is used to store the PostgreSQL data
+# If the database is enabled, this PVC will be created
+{{- if .Values.database.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.name }}-pg-pv-main
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.name }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  storageClassName: csi-cinder-classic
+  resources:
+    requests:
+      storage: 1Gi
+{{- end }}
+---
+# PersistentVolumeClaim for the Redis database
+# This PVC is used to store the Redis data
+# If Redis is enabled, this PVC will be created
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.name }}-redis-main
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.name }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  storageClassName: csi-cinder-classic
+  resources:
+    requests:
+      storage: 1Gi
+{{- end }}
+---
+# StatefulSet description for the VS Agent
+# This StatefulSet manages the deployment of the VS Agent service
+# It includes the agent container, PostgreSQL database (if enabled), and Redis (if enabled)
+# The StatefulSet ensures that the agent service is deployed with a stable identity and persistent storage
+# The agent service is configured with environment variables for the agent endpoint, label, invitation image URL, and public DID
+# The PostgreSQL database is configured with environment variables for the user and password
+# The Redis service is configured with its own container and persistent storage
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   name: {{ .Values.name }}
+   namespace: {{ .Release.Namespace }}
+spec:
+   serviceName: {{ .Values.name }}
+   replicas: {{ default 1 .Values.replicas }}
+   selector:
+      matchLabels:
+         app: {{ .Values.name }}
+   template:
+      metadata:
+         labels:
+            app: {{ .Values.name }}
+      spec:
+         containers:
+         -  name: {{ .Values.name }}-sa-container
+            image: {{ .Values.image.repository | default "veranalabs/vs-agent" }}:{{ .Values.image.tag | default .Chart.Version }}
+            imagePullPolicy: Always
+            env:
+            - name: AGENT_LABEL
+              value: {{ .Values.didcommLabel | quote }}
+            - name: AGENT_INVITATION_IMAGE_URL
+              value: {{ tpl .Values.didcommInvitationImageUrl . | quote }}
+            - name: EVENTS_BASE_URL
+              value: {{ tpl .Values.eventsBaseUrl . | quote }}
+            - name: ENABLE_PUBLIC_API_SWAGGER
+              value: {{ .Values.enablePublicApiSwagger | quote }}
+            - name: AGENT_PUBLIC_DID
+              value: "did:{{ default "webvh" .Values.publicDidMethod }}:{{ tpl .Values.ingress.host . }}"
+{{- with .Values.extraEnv }}
+{{ toYaml . | nindent 12 }}
+{{- end }}
+            ports:
+            -  containerPort: {{ .Values.adminPort }}
+            -  containerPort: {{ .Values.didcommPort }}
+            {{- if .Values.resources }}
+            resources:
+{{- toYaml .Values.resources | nindent 14 }}
+            {{- end }}
+            livenessProbe:
+              httpGet:
+                path: /v1/health
+                port: {{ .Values.adminPort }}
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 5
+              failureThreshold: 2
+            readinessProbe:
+              httpGet:
+                path: /v1/health
+                port: {{ .Values.adminPort }}
+              initialDelaySeconds: 15
+              periodSeconds: 60
+              timeoutSeconds: 5
+              failureThreshold: 2
+            volumeMounts:
+            - name: {{ .Values.name }}-vsa-pv
+              mountPath: /root/.afj
+        {{- if .Values.database.enabled }}
+         -  name: postgres
+            image: postgres:15.2
+            imagePullPolicy: Always
+            env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.secretPwdKey | default "POSTGRES_PASSWORD" }}
+            - name: POSTGRES_USER
+              value: {{ .Values.database.user | quote }}
+            - name: PGDATA
+              value: "/var/lib/postgresql/data/pgdata"
+            ports:
+            -  containerPort: 5432
+            resources:
+{{- toYaml .Values.database.resources | nindent 14 }}
+            volumeMounts:
+            - name: {{ .Values.name }}-pg-pv-main
+              mountPath: /var/lib/postgresql/data
+        {{- end }}
+        {{- if .Values.redis.enabled }}
+         -  name: {{ .Values.name }}-redis-container
+            image: redis:alpine
+            imagePullPolicy: Always
+            ports:
+            -  containerPort: 6379
+            resources:
+{{- toYaml .Values.redis.resources | nindent 14 }}
+            volumeMounts:
+            - name: {{ .Values.name }}-redis-main
+              mountPath: /home/data
+        {{- end }}
+
+         volumes:
+         - name: {{ .Values.name }}-vsa-pv
+           persistentVolumeClaim:
+             claimName: {{ .Values.name }}-vsa-pv
+        {{- if .Values.database.enabled }}
+         - name: {{ .Values.name }}-pg-pv-main
+           persistentVolumeClaim:
+             claimName: {{ .Values.name }}-pg-pv-main
+        {{- end }}
+        {{- if .Values.redis.enabled }}
+         - name: {{ .Values.name }}-redis-main
+           persistentVolumeClaim:
+             claimName: {{ .Values.name }}-redis-main
+        {{- end }}

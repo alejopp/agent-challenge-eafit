@@ -19,7 +19,7 @@ export const config = {
   helmReleasePrefix: process.env.HELM_RELEASE_PREFIX || 'persona',
   helmChartSource:
     process.env.HELM_CHART_SOURCE ||
-    'oci://registry-1.docker.io/io2060/hologram-generic-ai-agent-chart',
+    './helm/hologram-generic-ai-agent-chart',
   helmChartVersion: process.env.HELM_CHART_VERSION || 'v1.11.2',
   enableHelmDeploy: process.env.ENABLE_HELM_DEPLOY === 'true',
   ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://ollama.team-g.svc.cluster.local:11434/v1',
