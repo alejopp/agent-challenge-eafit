@@ -179,7 +179,7 @@ function buildHelmValues(bot, config) {
         { name: 'AGENT_WALLET_ID', value: bot.personaName },
         { name: 'USE_CORS', value: 'true' },
         { name: 'AGENT_LOG_LEVEL', value: '3' },
-        { name: 'ANONCREDS_SERVICE_BASE_URL', value: 'https://chatbot.dev.2060.io' },
+        { name: 'ANONCREDS_SERVICE_BASE_URL', value: `https://${config.veranaOrgPublicUrl || 'organization.eafit.testnet.verana.network'}` },
         { name: 'REDIRECT_DEFAULT_URL_TO_INVITATION_URL', value: 'true' },
         { name: 'POSTGRES_HOST', value: botPostgresHost },
         { name: 'POSTGRES_PORT', value: '5432' },

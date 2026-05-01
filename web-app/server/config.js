@@ -13,9 +13,9 @@ export const config = {
   storageDir: path.resolve(rootDir, process.env.STORAGE_DIR || './data'),
   kubeconfigPath: process.env.KUBECONFIG_PATH || './secrets/team-g-kubeconfig.yaml',
   k8sNamespace: process.env.K8S_NAMESPACE || 'team-g',
-  baseAgentDomain: process.env.BASE_AGENT_DOMAIN || 'agents.team-g.teams.eafit.testnet.verana.network',
+  baseAgentDomain: process.env.BASE_AGENT_DOMAIN || 'team-g.teams.eafit.testnet.verana.network',
   baseAgentTlsSecret:
-    process.env.BASE_AGENT_TLS_SECRET || `${process.env.BASE_AGENT_DOMAIN || 'agents.team-g.teams.eafit.testnet.verana.network'}-cert`,
+    process.env.BASE_AGENT_TLS_SECRET || 'team-g.teams.eafit.testnet.verana.network-cert',
   helmReleasePrefix: process.env.HELM_RELEASE_PREFIX || 'persona',
   helmChartSource:
     process.env.HELM_CHART_SOURCE ||
