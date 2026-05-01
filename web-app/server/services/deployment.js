@@ -105,6 +105,7 @@ function buildHelmValues(bot, config) {
   const botRedisHost = getBotRedisHost(bot, config);
   const botVsAgentAdminUrl = getBotVsAgentAdminUrl(bot, config);
   const openAiCompatApiKey = 'ollama-local-placeholder';
+  const isTestnet = config.baseAgentDomain.includes('testnet') || config.baseAgentDomain.includes('localhost');
 
   return {
     chartSource: config.helmChartSource,
@@ -123,6 +124,7 @@ function buildHelmValues(bot, config) {
     chatbot: {
       replicas: 1,
       env: [
+        ...(isTestnet ? [{ name: 'NODE_TLS_REJECT_UNAUTHORIZED', value: '0' }] : []),
         { name: 'APP_PORT', value: '3003' },
         { name: 'LOG_LEVEL', value: '3' },
         // The chatbot image expects an OpenAI-compatible API, so we route it to Ollama's v1 endpoint.
@@ -173,6 +175,7 @@ function buildHelmValues(bot, config) {
         pwd: config.sharedPostgresPassword
       },
       extraEnv: [
+        ...(isTestnet ? [{ name: 'NODE_TLS_REJECT_UNAUTHORIZED', value: '0' }] : []),
         { name: 'AGENT_WALLET_ID', value: bot.personaName },
         { name: 'USE_CORS', value: 'true' },
         { name: 'AGENT_LOG_LEVEL', value: '3' },
