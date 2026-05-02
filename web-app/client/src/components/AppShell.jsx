@@ -34,14 +34,16 @@ export function AppShell({ user, onLogout, children }) {
         </div>
 
         <div className="sidebar-footer">
-          <div className="avatar-pill">{user.displayName?.slice(0, 1) || 'U'}</div>
-          <div>
-            <strong>{user.displayName}</strong>
-            <span>{user.email}</span>
+          <div className="sidebar-footer-content">
+            <div className="avatar-pill">{user.displayName?.slice(0, 1) || 'U'}</div>
+            <div className="sidebar-footer-info">
+              <strong>{user.displayName}</strong>
+              <span>{user.email}</span>
+            </div>
+            <button onClick={onLogout} className="ghost-button logout-button">
+              Logout
+            </button>
           </div>
-          <button onClick={onLogout} className="ghost-button">
-            Logout
-          </button>
         </div>
       </aside>
 

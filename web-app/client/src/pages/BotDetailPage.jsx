@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BotForm } from '../components/BotForm';
 
 export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, onUnpublish }) {
+  const navigate = useNavigate();
   const [bot, setBot] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -30,6 +32,10 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
     }
   };
 
+  const handleComplete = () => {
+    navigate('/');
+  };
+
   const handlePublish = async () => {
     setBusy(true);
     try {
@@ -53,7 +59,7 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
   return (
     <div className="detail-layout">
       <div className="detail-main">
-        <BotForm initialValue={bot} mcpServices={mcpServices} onSubmit={handleSave} submitting={busy} />
+        <BotForm initialValue={bot} mcpServices={mcpServices} onSubmit={handleSave} submitting={busy} onComplete={handleComplete} />
       </div>
 
       <aside className="detail-sidebar">
@@ -70,10 +76,10 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
           <h3>Deployment</h3>
           <p>{bot.deploymentNotes || 'This bot has not been published yet.'}</p>
           <div className="stacked-actions">
-            <button className="primary-button" onClick={handlePublish} disabled={busy}>
+            <button className="deploy-button" onClick={handlePublish} disabled={busy}>
               Publish to Kubernetes
             </button>
-            <button className="secondary-button" onClick={handleUnpublish} disabled={busy}>
+            <button className="deploy-button" onClick={handleUnpublish} disabled={busy}>
               Unpublish
             </button>
           </div>
