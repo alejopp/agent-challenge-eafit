@@ -9,12 +9,15 @@ export function NewBotPage({ mcpServices, onCreate }) {
   const handleCreate = async (formData) => {
     setSubmitting(true);
     try {
-      const bot = await onCreate(formData);
-      navigate(`/bots/${bot.id}`);
+      await onCreate(formData);
     } finally {
       setSubmitting(false);
     }
   };
 
-  return <BotForm mcpServices={mcpServices} onSubmit={handleCreate} submitting={submitting} />;
+  const handleComplete = () => {
+    navigate('/');
+  };
+
+  return <BotForm mcpServices={mcpServices} onSubmit={handleCreate} submitting={submitting} onComplete={handleComplete} />;
 }
