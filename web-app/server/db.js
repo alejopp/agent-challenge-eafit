@@ -12,7 +12,7 @@ function writeStore(data) {
   fs.writeFileSync(databasePath, JSON.stringify(data, null, 2));
 }
 
-function normalizeUser(user) {
+export function normalizeUser(user) {
   if (!user) {
     return null;
   }
@@ -136,4 +136,17 @@ export function updateBot(botId, userId, changes) {
 
   writeStore(store);
   return store.bots[botIndex];
+}
+
+export function deleteBot(botId, userId) {
+  const store = readStore();
+  const botIndex = store.bots.findIndex((bot) => bot.id === botId && bot.userId === userId);
+
+  if (botIndex === -1) {
+    return false;
+  }
+
+  store.bots.splice(botIndex, 1);
+  writeStore(store);
+  return true;
 }

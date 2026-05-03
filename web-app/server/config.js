@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import path from 'node:path';
 
 const rootDir = path.resolve(process.cwd());
@@ -44,5 +46,13 @@ export const config = {
   mcpInternalBaseUrl:
     process.env.MCP_INTERNAL_BASE_URL ||
     `http://persona-ai-creator.${process.env.K8S_NAMESPACE || 'team-g'}.svc.cluster.local`,
-  llmProvider: process.env.LLM_PROVIDER || 'ollama'
+  llmProvider: process.env.LLM_PROVIDER || 'ollama',
+  // OAuth Configuration
+  baseUrl: process.env.APP_URL || 'http://localhost:4000',
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  githubClientId: process.env.GITHUB_CLIENT_ID || '',
+  githubClientSecret: process.env.GITHUB_CLIENT_SECRET || ''
 };
+
+console.log('[Config] GOOGLE_CLIENT_ID from env:', process.env.GOOGLE_CLIENT_ID ? 'set (length: ' + process.env.GOOGLE_CLIENT_ID.length + ')' : 'NOT SET');

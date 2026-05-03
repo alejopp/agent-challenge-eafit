@@ -63,21 +63,65 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
   };
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [stepError, setStepError] = useState('');
 
-  const handleNext = () => {
+  const validateStep = (step) => {
+    switch (step) {
+      case 0:
+        if (!formState.personaName.trim()) return 'El nombre de la persona es obligatorio.';
+        if (!formState.profession.trim()) return 'La profesión es obligatoria.';
+        if (!formState.personaDescription.trim()) return 'La descripción es obligatoria.';
+        return '';
+      case 1:
+        if (!formState.serviceName.trim()) return 'El nombre del servicio es obligatorio.';
+        if (!formState.serviceDescription.trim()) return 'La descripción del servicio es obligatoria.';
+        return '';
+      case 2:
+        if (!formState.prompt.trim()) return 'El system prompt es obligatorio.';
+        return '';
+      case 3:
+        if (formState.mcpServices.length === 0) return 'Debes seleccionar al menos un servicio MCP.';
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  const handleNext = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const error = validateStep(currentStep);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+    setStepError('');
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
 
-  const handlePrevious = () => {
+  const handlePrevious = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const error = validateStep(currentStep);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+    setStepError('');
     await onSubmit(buildBotFormData(formState));
     if (onComplete) {
       onComplete();
@@ -129,19 +173,32 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
               />
             </label>
 
-            <label className="file-field">
-              <span>Persona photo</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) =>
-                  setFormState({
-                    ...formState,
-                    personaPhotoFile: event.target.files?.[0] || null
-                  })
-                }
-              />
-            </label>
+            <div className="photo-upload-row">
+              {formState.personaPhotoPreview && (
+                <img
+                  src={formState.personaPhotoPreview}
+                  alt="Persona preview"
+                  className="persona-photo-preview"
+                />
+              )}
+              <label className="file-field" style={{ flex: 1 }}>
+                <span>Persona photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setFormState({
+                      ...formState,
+                      personaPhotoFile: file,
+                      personaPhotoPreview: file
+                        ? URL.createObjectURL(file)
+                        : formState.personaPhotoPreview
+                    });
+                  }}
+                />
+              </label>
+            </div>
           </section>
         );
       case 1:
@@ -483,6 +540,12 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         {renderStepContent()}
       </div>
 
+      {stepError && (
+        <div className="step-error-banner">
+          {stepError}
+        </div>
+      )}
+
       <div className="form-actions">
         <button
           type="button"
@@ -497,7 +560,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
             Next →
           </button>
         ) : (
-          <button type="submit" className="primary-button" disabled={submitting}>
+          <button type="button" className="primary-button" disabled={submitting} onClick={handleSave}>
             {submitting ? 'Saving...' : 'Save bot'}
           </button>
         )}

@@ -6,10 +6,16 @@ import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NewBotPage } from './pages/NewBotPage';
 import { BotDetailPage } from './pages/BotDetailPage';
+import { BotEditPage } from './pages/BotEditPage';
 
 function BotRoute(props) {
   const { botId } = useParams();
   return <BotDetailPage botId={botId} {...props} />;
+}
+
+function BotEditRoute(props) {
+  const { botId } = useParams();
+  return <BotEditPage botId={botId} {...props} />;
 }
 
 export default function App() {
@@ -116,6 +122,11 @@ export default function App() {
     return response.bot;
   };
 
+  const deleteBot = async (botId) => {
+    await api.deleteBot(botId);
+    await refreshBots();
+  };
+
   if (session === undefined) {
     return <div className="loading-screen">Loading workspace...</div>;
   }
@@ -140,6 +151,17 @@ export default function App() {
           path="/bots/:botId"
           element={
             <BotRoute
+              loadBot={loadBot}
+              onDelete={deleteBot}
+              onPublish={publishBot}
+              onUnpublish={unpublishBot}
+            />
+          }
+        />
+        <Route
+          path="/bots/:botId/edit"
+          element={
+            <BotEditRoute
               mcpServices={mcpServices}
               loadBot={loadBot}
               onSave={saveBot}
