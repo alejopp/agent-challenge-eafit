@@ -2,6 +2,21 @@ name: Deploy Persona AI Creator
 
 on:
   workflow_dispatch:
+    inputs:
+      step:
+        description: "Which step to run"
+        required: true
+        type: choice
+        options:
+          - deploy
+          - get-credentials
+          - all
+        default: all
+      agent_name:
+        description: "Agent slug to get credentials for (e.g. pikachuuu, bomberman). Only needed for get-credentials step."
+        required: false
+        type: string
+        default: ""
   push:
     branches:
       - main
@@ -31,6 +46,17 @@ jobs:
             echo "::error::This workflow can only run on the main branch (current: ${GITHUB_REF_NAME})"
             exit 1
           fi
+          echo "NETWORK=testnet" >> "$GITHUB_ENV"
+
+      - name: Load configuration
+        run: |
+          set -a
+          source config.env
+          set +a
+          while IFS= read -r line; do
+            key="${line%%=*}"
+            echo "${key}=${!key}" >> "$GITHUB_ENV"
+          done < <(grep -E '^[A-Z_]+=' config.env)
 
       - name: Prepare deployment variables
         run: |
@@ -47,15 +73,18 @@ jobs:
           echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
+        if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
+        if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push image
+        if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
         uses: docker/build-push-action@v6
         with:
           context: ./web-app
@@ -91,6 +120,7 @@ jobs:
           version: "v3.14.0"
 
       - name: Validate Helm chart
+        if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
         run: |
           helm template "$RELEASE_NAME" "$CHART_PATH" \
             --set image.repository="$IMAGE_REPOSITORY" \
@@ -101,6 +131,7 @@ jobs:
             --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml > /tmp/persona-ai/rendered.yaml
 
       - name: Deploy Persona AI Creator
+        if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
         run: |
           kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
@@ -125,6 +156,70 @@ jobs:
           kubectl get svc -n "$NAMESPACE" || true
           kubectl get deploy,statefulset,pvc -n "$NAMESPACE" || true
 
+      # -----------------------------------------------------------------------
+      # GET-CREDENTIALS: Obtain Service credential for a deployed agent bot
+      # -----------------------------------------------------------------------
+      - name: Port-forward Agent VS Agent
+        if: inputs.step == 'get-credentials' || inputs.step == 'all'
+        run: |
+          AGENT_NAME="${{ inputs.agent_name }}"
+          if [ -z "$AGENT_NAME" ]; then
+            echo "::error::agent_name input is required for get-credentials step"
+            exit 1
+          fi
+          AGENT_SVC="persona-${AGENT_NAME}"
+          kubectl port-forward -n "$NAMESPACE" "svc/${AGENT_SVC}" 3002:3000 &
+          echo "CHILD_PF_PID=$!" >> "$GITHUB_ENV"
+          sleep 5
+          curl -sf http://localhost:3002/v1/agent > /dev/null || {
+            echo "::error::Port-forward to ${AGENT_SVC} VS-Agent failed"
+            exit 1
+          }
+          echo "Port-forward to ${AGENT_SVC} VS-Agent on :3002"
+          echo "AGENT_PUBLIC_URL=https://${AGENT_NAME}.agents.team-g.teams.eafit.testnet.verana.network" >> "$GITHUB_ENV"
+
+      - name: Get Service credential
+        if: inputs.step == 'get-credentials' || inputs.step == 'all'
+        run: |
+          ORG_ADMIN_API="${ORG_VS_ADMIN_URL}"
+          CHILD_ADMIN_API="http://localhost:3002"
+          source common/common.sh
+          set_network_vars "$NETWORK"
+
+          CHILD_DID=$(curl -sf "${CHILD_ADMIN_API}/v1/agent" | jq -r '.publicDid')
+          echo "Agent DID: $CHILD_DID"
+
+          CHILD_PUBLIC_URL="${AGENT_PUBLIC_URL}"
+          if has_linked_vp "$CHILD_PUBLIC_URL" "service"; then
+            ok "Service credential already linked — skipping"
+          else
+            SERVICE_VTJSC_OUTPUT=$(discover_ecs_vtjsc "$ECS_TR_PUBLIC_URL" "service")
+            SERVICE_JSC_URL=$(echo "$SERVICE_VTJSC_OUTPUT" | sed -n '1p')
+
+            download_logo_data_uri "$SERVICE_LOGO_URL" > /tmp/service_logo_data_uri
+
+            SERVICE_CLAIMS=$(jq -n \
+              --rawfile logo /tmp/service_logo_data_uri \
+              --arg id "$CHILD_DID" \
+              --arg name "$SERVICE_NAME" \
+              --arg type "${SERVICE_TYPE:-AIAgent}" \
+              --arg desc "$SERVICE_DESCRIPTION" \
+              --argjson age "${SERVICE_MIN_AGE:-0}" \
+              --arg terms "${SERVICE_TERMS:-}" \
+              --arg privacy "${SERVICE_PRIVACY:-}" \
+              '{id: $id, name: $name, type: $type, description: $desc, logo: ($logo | rtrimstr("\n")), minimumAgeRequired: $age, termsAndConditions: $terms, privacyPolicy: $privacy}')
+
+            issue_remote_and_link "$ORG_ADMIN_API" "$CHILD_ADMIN_API" "service" "$SERVICE_JSC_URL" "$CHILD_DID" "$SERVICE_CLAIMS"
+          fi
+
+      # -----------------------------------------------------------------------
+      # CLEANUP
+      # -----------------------------------------------------------------------
+      - name: Stop port-forwards
+        if: always()
+        run: |
+          [ -n "${CHILD_PF_PID:-}" ] && kill "$CHILD_PF_PID" 2>/dev/null || true
+
       - name: Summary
         if: always()
         run: |
@@ -135,4 +230,7 @@ jobs:
             echo "- Release: \`$RELEASE_NAME\`"
             echo "- Image: \`$IMAGE_REPOSITORY:$IMAGE_TAG\`"
             echo "- Chart: \`$CHART_PATH\`"
+            if [ -n "${{ inputs.agent_name }}" ]; then
+              echo "- Agent credentials: \`${{ inputs.agent_name }}\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
