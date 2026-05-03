@@ -12,11 +12,6 @@ on:
           - get-credentials
           - all
         default: all
-      agent_name:
-        description: "Agent slug to get credentials for (e.g. pikachuuu, bomberman). Only needed for get-credentials step."
-        required: false
-        type: string
-        default: ""
   push:
     branches:
       - main
@@ -157,45 +152,53 @@ jobs:
           kubectl get deploy,statefulset,pvc -n "$NAMESPACE" || true
 
       # -----------------------------------------------------------------------
-      # GET-CREDENTIALS: Obtain Service credential for a deployed agent bot
+      # GET-CREDENTIALS: Issue Service credential for all deployed agents
+      # Uses the org public admin API — no port-forward needed.
+      # Skips agents that already have a linked Service credential.
       # -----------------------------------------------------------------------
-      - name: Port-forward Agent VS Agent
+      - name: Get Service credentials for all agents
         if: inputs.step == 'get-credentials' || inputs.step == 'all'
         run: |
-          AGENT_NAME="${{ inputs.agent_name }}"
-          if [ -z "$AGENT_NAME" ]; then
-            echo "::error::agent_name input is required for get-credentials step"
-            exit 1
-          fi
-          AGENT_SVC="persona-${AGENT_NAME}"
-          kubectl port-forward -n "$NAMESPACE" "svc/${AGENT_SVC}" 3002:3000 &
-          echo "CHILD_PF_PID=$!" >> "$GITHUB_ENV"
-          sleep 5
-          curl -sf http://localhost:3002/v1/agent > /dev/null || {
-            echo "::error::Port-forward to ${AGENT_SVC} VS-Agent failed"
-            exit 1
-          }
-          echo "Port-forward to ${AGENT_SVC} VS-Agent on :3002"
-          echo "AGENT_PUBLIC_URL=https://${AGENT_NAME}.agents.team-g.teams.eafit.testnet.verana.network" >> "$GITHUB_ENV"
-
-      - name: Get Service credential
-        if: inputs.step == 'get-credentials' || inputs.step == 'all'
-        run: |
-          ORG_ADMIN_API="${ORG_VS_ADMIN_URL}"
-          CHILD_ADMIN_API="http://localhost:3002"
           source common/common.sh
           set_network_vars "$NETWORK"
 
-          CHILD_DID=$(curl -sf "${CHILD_ADMIN_API}/v1/agent" | jq -r '.publicDid')
-          echo "Agent DID: $CHILD_DID"
+          ORG_ADMIN_API="${ORG_VS_ADMIN_URL}"
+          BASE_DOMAIN="agents.team-g.teams.eafit.testnet.verana.network"
 
-          CHILD_PUBLIC_URL="${AGENT_PUBLIC_URL}"
-          if has_linked_vp "$CHILD_PUBLIC_URL" "service"; then
-            ok "Service credential already linked — skipping"
-          else
-            SERVICE_VTJSC_OUTPUT=$(discover_ecs_vtjsc "$ECS_TR_PUBLIC_URL" "service")
-            SERVICE_JSC_URL=$(echo "$SERVICE_VTJSC_OUTPUT" | sed -n '1p')
+          # Discover the Service JSC URL once (shared for all agents)
+          SERVICE_VTJSC_OUTPUT=$(discover_ecs_vtjsc "$ECS_TR_PUBLIC_URL" "service")
+          SERVICE_JSC_URL=$(echo "$SERVICE_VTJSC_OUTPUT" | sed -n '1p')
 
+          # List all persona-* Helm releases (each is a deployed agent)
+          AGENTS=$(helm list -n "$NAMESPACE" --short | grep '^persona-' | sed 's/^persona-//')
+
+          if [ -z "$AGENTS" ]; then
+            warn "No persona-* agents found in namespace $NAMESPACE"
+            exit 0
+          fi
+
+          for AGENT_NAME in $AGENTS; do
+            AGENT_PUBLIC_URL="https://${AGENT_NAME}.${BASE_DOMAIN}"
+            AGENT_ADMIN_API="${AGENT_PUBLIC_URL}"
+
+            echo ""
+            log "Processing agent: $AGENT_NAME ($AGENT_PUBLIC_URL)"
+
+            # Check if already has a Service credential linked
+            if has_linked_vp "$AGENT_PUBLIC_URL" "service"; then
+              ok "$AGENT_NAME — Service credential already linked, skipping"
+              continue
+            fi
+
+            # Get agent DID from its public admin API
+            CHILD_DID=$(curl -sf "${AGENT_ADMIN_API}/v1/agent" 2>/dev/null | jq -r '.publicDid // empty')
+            if [ -z "$CHILD_DID" ]; then
+              err "$AGENT_NAME — Could not reach admin API at ${AGENT_ADMIN_API}/v1/agent, skipping"
+              continue
+            fi
+            echo "  DID: $CHILD_DID"
+
+            # Download logo
             download_logo_data_uri "$SERVICE_LOGO_URL" > /tmp/service_logo_data_uri
 
             SERVICE_CLAIMS=$(jq -n \
@@ -209,17 +212,12 @@ jobs:
               --arg privacy "${SERVICE_PRIVACY:-}" \
               '{id: $id, name: $name, type: $type, description: $desc, logo: ($logo | rtrimstr("\n")), minimumAgeRequired: $age, termsAndConditions: $terms, privacyPolicy: $privacy}')
 
-            issue_remote_and_link "$ORG_ADMIN_API" "$CHILD_ADMIN_API" "service" "$SERVICE_JSC_URL" "$CHILD_DID" "$SERVICE_CLAIMS"
-          fi
+            issue_remote_and_link "$ORG_ADMIN_API" "$AGENT_ADMIN_API" "service" "$SERVICE_JSC_URL" "$CHILD_DID" "$SERVICE_CLAIMS"
+          done
 
       # -----------------------------------------------------------------------
       # CLEANUP
       # -----------------------------------------------------------------------
-      - name: Stop port-forwards
-        if: always()
-        run: |
-          [ -n "${CHILD_PF_PID:-}" ] && kill "$CHILD_PF_PID" 2>/dev/null || true
-
       - name: Summary
         if: always()
         run: |
@@ -230,7 +228,4 @@ jobs:
             echo "- Release: \`$RELEASE_NAME\`"
             echo "- Image: \`$IMAGE_REPOSITORY:$IMAGE_TAG\`"
             echo "- Chart: \`$CHART_PATH\`"
-            if [ -n "${{ inputs.agent_name }}" ]; then
-              echo "- Agent credentials: \`${{ inputs.agent_name }}\`"
-            fi
           } >> "$GITHUB_STEP_SUMMARY"
