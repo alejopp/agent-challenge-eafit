@@ -169,8 +169,8 @@ jobs:
           SERVICE_VTJSC_OUTPUT=$(discover_ecs_vtjsc "$ECS_TR_PUBLIC_URL" "service")
           SERVICE_JSC_URL=$(echo "$SERVICE_VTJSC_OUTPUT" | sed -n '1p')
 
-          # List all persona-* Helm releases (each is a deployed agent)
-          AGENTS=$(helm list -n "$NAMESPACE" --short | grep '^persona-' | sed 's/^persona-//')
+          # List all persona-* Helm releases (each is a deployed agent), excluding the creator app itself
+          AGENTS=$(helm list -n "$NAMESPACE" --short | grep '^persona-' | grep -v '^persona-ai-creator$' | sed 's/^persona-//')
 
           if [ -z "$AGENTS" ]; then
             warn "No persona-* agents found in namespace $NAMESPACE"
