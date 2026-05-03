@@ -175,7 +175,6 @@ function buildHelmValues(bot, config) {
         pwd: config.sharedPostgresPassword
       },
       extraEnv: [
-        ...(isTestnet ? [{ name: 'NODE_TLS_REJECT_UNAUTHORIZED', value: '0' }] : []),
         { name: 'AGENT_WALLET_ID', value: bot.personaName },
         { name: 'SERVICE_NAME', value: bot.serviceName || bot.personaName },
         { name: 'SERVICE_DESCRIPTION', value: bot.serviceDescription || '' },

@@ -112,6 +112,10 @@ jobs:
             --set appSecrets.sharedPostgresPassword="${{ secrets.SHARED_POSTGRES_PASSWORD }}" \
             --set appSecrets.openaiApiKey="${{ secrets.EXAMPLE_AGENT_OPENAI_API_KEY }}" \
             --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml \
+            --set vs-agent-chart.extraEnv[0].name=AGENT_WALLET_ID \
+            --set vs-agent-chart.extraEnv[0].value="Persona AI Creator" \
+            --set vs-agent-chart.extraEnv[1].name=AGENT_WALLET_KEY \
+            --set vs-agent-chart.extraEnv[1].value="${{ secrets.EXAMPLE_AGENT_WALLET_KEY }}" \
             --wait --timeout 10m
 
       - name: Show deployed resources
