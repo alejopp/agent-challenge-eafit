@@ -63,8 +63,6 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
   };
 
   const [currentStep, setCurrentStep] = useState(0);
-
-  const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -99,7 +97,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 <span>Name</span>
                 <input
                   value={formState.personaName}
-                  onChange={(event) => setFormState({ ...formState, personaName: event.target.value })}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, personaName: event.target.value }))}
                   placeholder="Laura Plomeria"
                   required
                 />
@@ -109,7 +107,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 <span>Profession</span>
                 <input
                   value={formState.profession}
-                  onChange={(event) => setFormState({ ...formState, profession: event.target.value })}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, profession: event.target.value }))}
                   placeholder="Residential plumber"
                   required
                 />
@@ -121,7 +119,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
               <textarea
                 value={formState.personaDescription}
                 onChange={(event) =>
-                  setFormState({ ...formState, personaDescription: event.target.value })
+                  setFormState((prev) => ({ ...prev, personaDescription: event.target.value }))
                 }
                 placeholder="Friendly, precise, and practical."
                 rows={4}
@@ -135,10 +133,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 type="file"
                 accept="image/*"
                 onChange={(event) =>
-                  setFormState({
-                    ...formState,
-                    personaPhotoFile: event.target.files?.[0] || null
-                  })
+                  setFormState((prev) => ({ ...prev, personaPhotoFile: event.target.files?.[0] || null }))
                 }
               />
             </label>
@@ -157,7 +152,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 <span>Service name</span>
                 <input
                   value={formState.serviceName}
-                  onChange={(event) => setFormState({ ...formState, serviceName: event.target.value })}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, serviceName: event.target.value }))}
                   placeholder="Emergency plumbing booking"
                   required
                 />
@@ -168,7 +163,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 <select
                   value={formState.serviceCategory}
                   onChange={(event) =>
-                    setFormState({ ...formState, serviceCategory: event.target.value })
+                    setFormState((prev) => ({ ...prev, serviceCategory: event.target.value }))
                   }
                 >
                   {categories.map((category) => (
@@ -185,7 +180,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
               <textarea
                 value={formState.serviceDescription}
                 onChange={(event) =>
-                  setFormState({ ...formState, serviceDescription: event.target.value })
+                  setFormState((prev) => ({ ...prev, serviceDescription: event.target.value }))
                 }
                 placeholder="Schedules visits, answers availability questions, and explains pricing."
                 rows={4}
@@ -206,7 +201,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
               <span>System prompt</span>
               <textarea
                 value={formState.prompt}
-                onChange={(event) => setFormState({ ...formState, prompt: event.target.value })}
+                onChange={(event) => setFormState((prev) => ({ ...prev, prompt: event.target.value }))}
                 rows={7}
                 placeholder="You are Laura's AI agent. Be warm, concise, and action-oriented..."
                 required
@@ -257,15 +252,22 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 type="file"
                 multiple
                 onChange={(event) =>
-                  setFormState({
-                    ...formState,
-                    ragFileList: Array.from(event.target.files || [])
-                  })
+                  setFormState((prev) => ({ ...prev, ragFileList: Array.from(event.target.files || []) }))
                 }
               />
             </label>
 
-            {initialValue?.ragFiles?.length ? (
+            {formState.ragFileList.length > 0 && (
+              <div className="rag-list">
+                {formState.ragFileList.map((file) => (
+                  <div key={file.name} className="rag-chip">
+                    {file.name}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {initialValue?.ragFiles?.length > 0 && (
               <div className="rag-list">
                 {initialValue.ragFiles.map((file) => (
                   <div key={file.path} className="rag-chip">
@@ -273,7 +275,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                   </div>
                 ))}
               </div>
-            ) : null}
+            )}
           </section>
         );
       default:
