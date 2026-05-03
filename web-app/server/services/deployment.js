@@ -46,9 +46,8 @@ function buildAgentPack(bot, config) {
       }
     },
     llm: {
-      provider: config.llmProvider,
-      model: config.ollamaModel,
-      baseUrl: config.ollamaBaseUrl,
+      provider: 'openai',
+      model: config.openaiModel,
       temperature: 0.4,
       agentPrompt: bot.prompt
     },
@@ -108,7 +107,6 @@ function buildHelmValues(bot, config) {
   const botPostgresHost = getBotPostgresHost(bot, config);
   const botRedisHost = getBotRedisHost(bot, config);
   const botVsAgentAdminUrl = getBotVsAgentAdminUrl(bot, config);
-  const openAiCompatApiKey = 'ollama-local-placeholder';
   const isTestnet = config.baseAgentDomain.includes('testnet') || config.baseAgentDomain.includes('localhost');
 
   return {
@@ -131,12 +129,10 @@ function buildHelmValues(bot, config) {
         ...(isTestnet ? [{ name: 'NODE_TLS_REJECT_UNAUTHORIZED', value: '0' }] : []),
         { name: 'APP_PORT', value: '3003' },
         { name: 'LOG_LEVEL', value: '3' },
-        // The chatbot image expects an OpenAI-compatible API, so we route it to Ollama's v1 endpoint.
         { name: 'LLM_PROVIDER', value: 'openai' },
-        { name: 'OPENAI_MODEL', value: config.ollamaModel },
-        { name: 'OPENAI_BASE_URL', value: config.ollamaBaseUrl },
+        { name: 'OPENAI_MODEL', value: config.openaiModel },
         { name: 'EMBEDDINGS_PROVIDER', value: 'openai' },
-        { name: 'EMBEDDINGS_MODEL', value: config.ollamaModel },
+        { name: 'EMBEDDINGS_MODEL', value: config.openaiModel },
         { name: 'VECTOR_STORE', value: 'redis' },
         { name: 'VECTOR_INDEX_NAME', value: bot.slug.replace(/-/g, '_') },
         { name: 'AGENT_MEMORY_BACKEND', value: 'redis' },
@@ -158,7 +154,6 @@ function buildHelmValues(bot, config) {
         enabled: false
       },
       secret: {
-        OPENAI_API_KEY: openAiCompatApiKey,
         POSTGRES_PASSWORD: config.sharedPostgresPassword,
         POSTGRES_USER: botDatabaseName,
         POSTGRES_DB_NAME: botDatabaseName
