@@ -34,6 +34,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "persona-ai-creator.fullname" . }}-secret
                   key: SHARED_POSTGRES_PASSWORD
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "persona-ai-creator.fullname" . }}-secret
+                  key: OPENAI_API_KEY
             - name: KUBECONFIG
               value: "/app/secrets/team-g-kubeconfig.yaml"
           readinessProbe:

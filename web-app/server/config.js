@@ -22,6 +22,7 @@ export const config = {
     './helm/hologram-generic-ai-agent-chart',
   helmChartVersion: process.env.HELM_CHART_VERSION || 'v1.11.2',
   enableHelmDeploy: process.env.ENABLE_HELM_DEPLOY === 'true',
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
   openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
   sharedRedisUrl:
     process.env.SHARED_REDIS_URL || 'redis://redis-master.team-g.svc.cluster.local:6379',

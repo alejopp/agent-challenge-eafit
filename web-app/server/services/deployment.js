@@ -156,7 +156,8 @@ function buildHelmValues(bot, config) {
       secret: {
         POSTGRES_PASSWORD: config.sharedPostgresPassword,
         POSTGRES_USER: botDatabaseName,
-        POSTGRES_DB_NAME: botDatabaseName
+        POSTGRES_DB_NAME: botDatabaseName,
+        OPENAI_API_KEY: config.openaiApiKey
       }
     },
     stats: {

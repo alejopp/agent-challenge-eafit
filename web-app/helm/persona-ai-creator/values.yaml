@@ -45,6 +45,7 @@ env:
 appSecrets:
   jwtSecret: ""
   sharedPostgresPassword: ""
+  openaiApiKey: ""
   kubeconfig: ""
 
 persistence:

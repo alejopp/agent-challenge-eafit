@@ -97,6 +97,7 @@ jobs:
             --set image.tag="$IMAGE_TAG" \
             --set appSecrets.jwtSecret="${{ secrets.APP_JWT_SECRET }}" \
             --set appSecrets.sharedPostgresPassword="${{ secrets.SHARED_POSTGRES_PASSWORD }}" \
+            --set appSecrets.openaiApiKey="${{ secrets.EXAMPLE_AGENT_OPENAI_API_KEY }}" \
             --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml > /tmp/persona-ai/rendered.yaml
 
       - name: Deploy Persona AI Creator
@@ -109,6 +110,7 @@ jobs:
             --set image.tag="$IMAGE_TAG" \
             --set appSecrets.jwtSecret="${{ secrets.APP_JWT_SECRET }}" \
             --set appSecrets.sharedPostgresPassword="${{ secrets.SHARED_POSTGRES_PASSWORD }}" \
+            --set appSecrets.openaiApiKey="${{ secrets.EXAMPLE_AGENT_OPENAI_API_KEY }}" \
             --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml \
             --wait --timeout 10m
 
