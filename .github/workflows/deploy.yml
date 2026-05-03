@@ -90,19 +90,19 @@ jobs:
             ${{ env.IMAGE_REPOSITORY }}:latest
 
       - name: Set up kubeconfig
+        env:
+          OVH_KUBECONFIG: ${{ secrets.OVH_KUBECONFIG }}
         run: |
           mkdir -p ~/.kube
-          cat > ~/.kube/config <<'KUBEEOF'
-          ${{ secrets.OVH_KUBECONFIG }}
-          KUBEEOF
+          echo "$OVH_KUBECONFIG" > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Save kubeconfig for Helm secret
+        env:
+          OVH_KUBECONFIG: ${{ secrets.OVH_KUBECONFIG }}
         run: |
           mkdir -p /tmp/persona-ai
-          cat > /tmp/persona-ai/team-g-kubeconfig.yaml <<'KUBEEOF'
-          ${{ secrets.OVH_KUBECONFIG }}
-          KUBEEOF
+          echo "$OVH_KUBECONFIG" > /tmp/persona-ai/team-g-kubeconfig.yaml
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
@@ -142,6 +142,7 @@ jobs:
             --set vs-agent-chart.extraEnv[0].value="Persona AI Creator" \
             --set vs-agent-chart.extraEnv[1].name=AGENT_WALLET_KEY \
             --set vs-agent-chart.extraEnv[1].value="${{ secrets.EXAMPLE_AGENT_WALLET_KEY }}" \
+            --burst-limit 100 \
             --wait --timeout 10m
 
       - name: Show deployed resources
