@@ -198,15 +198,29 @@ jobs:
             fi
             echo "  DID: $CHILD_DID"
 
+            # Extract agent-specific name and description from its ConfigMap
+            AGENT_DISPLAY_NAME=$(kubectl get configmap "persona-${AGENT_NAME}-agent-pack" -n "$NAMESPACE" \
+              -o jsonpath='{.data.agent-pack\.yaml}' 2>/dev/null \
+              | grep -E '^  displayName:' | sed 's/.*displayName: *//' | tr -d '"' | head -1)
+            AGENT_DESCRIPTION=$(kubectl get configmap "persona-${AGENT_NAME}-agent-pack" -n "$NAMESPACE" \
+              -o jsonpath='{.data.agent-pack\.yaml}' 2>/dev/null \
+              | grep -E '^  description:' | sed 's/.*description: *//' | tr -d '"' | head -1)
+
+            # Fallback to config.env values if not found in ConfigMap
+            AGENT_DISPLAY_NAME="${AGENT_DISPLAY_NAME:-$SERVICE_NAME}"
+            AGENT_DESCRIPTION="${AGENT_DESCRIPTION:-$SERVICE_DESCRIPTION}"
+            echo "  Name: $AGENT_DISPLAY_NAME"
+            echo "  Description: $AGENT_DESCRIPTION"
+
             # Download logo
             download_logo_data_uri "$SERVICE_LOGO_URL" > /tmp/service_logo_data_uri
 
             SERVICE_CLAIMS=$(jq -n \
               --rawfile logo /tmp/service_logo_data_uri \
               --arg id "$CHILD_DID" \
-              --arg name "$SERVICE_NAME" \
+              --arg name "$AGENT_DISPLAY_NAME" \
               --arg type "${SERVICE_TYPE:-AIAgent}" \
-              --arg desc "$SERVICE_DESCRIPTION" \
+              --arg desc "$AGENT_DESCRIPTION" \
               --argjson age "${SERVICE_MIN_AGE:-0}" \
               --arg terms "${SERVICE_TERMS:-}" \
               --arg privacy "${SERVICE_PRIVACY:-}" \

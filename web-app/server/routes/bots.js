@@ -134,7 +134,7 @@ export function botsRouter(config) {
     }
   );
 
-  router.post('/:botId/publish', (req, res) => {
+  router.post('/:botId/publish', async (req, res) => {
     const existingBot = getBotByIdForUser(req.params.botId, req.user.id);
     if (!existingBot) {
       return res.status(404).json({ error: 'Bot not found.' });
@@ -142,7 +142,7 @@ export function botsRouter(config) {
 
     let result;
     try {
-      result = publishBot(existingBot, config);
+      result = await publishBot(existingBot, config);
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }

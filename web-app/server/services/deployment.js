@@ -3,6 +3,123 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import YAML from 'yaml';
 
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+  try {
+    return { ok: res.ok, status: res.status, body: JSON.parse(text) };
+  } catch {
+    return { ok: res.ok, status: res.status, body: text };
+  }
+}
+
+async function issueServiceCredential(bot, config) {
+  const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
+  const agentPublicUrl = bot.publicUrl.replace(/\/$/, '');
+  const agentAdminApi = agentPublicUrl;
+
+  // Check if already has a service credential linked
+  try {
+    const didDoc = await fetch(`${agentPublicUrl}/.well-known/did.json`).then((r) => r.json());
+    const hasLinked = (didDoc?.service || []).some(
+      (s) => s.type === 'LinkedVerifiablePresentation' && s.id?.includes('service-jsc-vp')
+    );
+    if (hasLinked) {
+      console.log(`[credential] ${bot.slug} already has Service credential linked — skipping`);
+      return { success: true, skipped: true };
+    }
+  } catch {
+    // DID doc not yet available (agent may still be starting), continue anyway
+  }
+
+  // Discover the Service JSC URL from the ECS Trust Registry
+  const ecrTrPublicUrl = 'https://ecs-trust-registry.testnet.verana.network';
+  const vtjscRes = await fetchJson(`${ecrTrPublicUrl}/v1/vt/vtjsc?schemaBaseId=service`);
+  if (!vtjscRes.ok) {
+    console.error(`[credential] Failed to discover Service JSC: ${vtjscRes.status}`);
+    return { success: false, error: `Failed to discover Service JSC: ${vtjscRes.status}` };
+  }
+  const serviceJscUrl = vtjscRes.body?.items?.[0]?.id || vtjscRes.body?.[0]?.id;
+  if (!serviceJscUrl) {
+    console.error('[credential] No Service JSC URL found in Trust Registry');
+    return { success: false, error: 'No Service JSC URL found' };
+  }
+
+  // Get agent DID
+  let agentDid;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      const agentRes = await fetchJson(`${agentAdminApi}/v1/agent`);
+      agentDid = agentRes.body?.publicDid;
+      if (agentDid) break;
+    } catch { /* agent still starting */ }
+    await new Promise((r) => setTimeout(r, 6000));
+  }
+  if (!agentDid) {
+    console.error(`[credential] Could not get DID from agent ${bot.slug}`);
+    return { success: false, error: 'Agent DID not available after retries' };
+  }
+
+  // Build claims
+  const logoUrl = bot.personaPhotoPath ? `${config.appUrl}${bot.personaPhotoPath}` : '';
+  let logoDataUri = '';
+  if (logoUrl) {
+    try {
+      const logoRes = await fetch(logoUrl);
+      const buffer = await logoRes.arrayBuffer();
+      const mime = logoRes.headers.get('content-type') || 'image/png';
+      logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
+    } catch { /* logo download failed, continue without it */ }
+  }
+
+  const claims = {
+    id: agentDid,
+    name: bot.personaName,
+    type: 'AIAgent',
+    description: bot.serviceDescription || bot.personaDescription || '',
+    logo: logoDataUri,
+    minimumAgeRequired: 0,
+    termsAndConditions: '',
+    privacyPolicy: ''
+  };
+
+  // Issue credential from org admin API
+  const issueRes = await fetchJson(`${orgAdminApi}/v1/vt/issue-credential`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ format: 'jsonld', did: agentDid, jsonSchemaCredentialId: serviceJscUrl, claims })
+  });
+
+  if (!issueRes.ok) {
+    console.error(`[credential] Issue failed (${issueRes.status}):`, issueRes.body);
+    return { success: false, error: `Issue credential failed: ${issueRes.status}` };
+  }
+
+  const credential = issueRes.body?.credential ?? issueRes.body;
+
+  // Delete any previous linked credential for this schema
+  await fetch(`${agentAdminApi}/v1/vt/linked-credentials`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credentialSchemaId: serviceJscUrl })
+  }).catch(() => {});
+
+  // Link credential on agent
+  const linkRes = await fetchJson(`${agentAdminApi}/v1/vt/linked-credentials`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ schemaBaseId: 'service', credential })
+  });
+
+  if (!linkRes.ok) {
+    console.error(`[credential] Link failed (${linkRes.status}):`, linkRes.body);
+    return { success: false, error: `Link credential failed: ${linkRes.status}` };
+  }
+
+  console.log(`[credential] Service credential issued and linked for ${bot.slug}`);
+  return { success: true };
+}
+
 function slugify(input) {
   return input
     .toLowerCase()
@@ -417,7 +534,7 @@ export function prepareBotForPersistence(input, config, existingBot = {}) {
   };
 }
 
-export function publishBot(bot, config) {
+export async function publishBot(bot, config) {
   const { botDir } = writeBotAssets(bot, config);
 
   if (!config.enableHelmDeploy) {
@@ -429,9 +546,24 @@ export function publishBot(bot, config) {
   }
 
   const result = runHelm('publish', bot, config, botDir);
+  if (result.status !== 0) {
+    return {
+      success: false,
+      notes: result.stderr || result.stdout
+    };
+  }
+
+  // Issue and link Service credential automatically after deployment
+  const credResult = await issueServiceCredential(bot, config);
+  if (!credResult.success && !credResult.skipped) {
+    console.warn(`[credential] Warning: Helm deploy succeeded but credential issuance failed: ${credResult.error}`);
+  }
+
   return {
-    success: result.status === 0,
-    notes: result.status === 0 ? result.stdout : result.stderr || result.stdout
+    success: true,
+    notes: result.stdout,
+    credentialIssued: credResult.success && !credResult.skipped,
+    credentialSkipped: credResult.skipped
   };
 }
 
