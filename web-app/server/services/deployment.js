@@ -13,24 +13,12 @@ async function fetchJson(url, options = {}) {
   }
 }
 
-async function issueServiceCredential(bot, config) {
+export async function issueServiceCredential(bot, config) {
   const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
   const agentPublicUrl = bot.publicUrl.replace(/\/$/, '');
   const agentAdminApi = agentPublicUrl;
 
-  // Check if already has a service credential linked
-  try {
-    const didDoc = await fetch(`${agentPublicUrl}/.well-known/did.json`).then((r) => r.json());
-    const hasLinked = (didDoc?.service || []).some(
-      (s) => s.type === 'LinkedVerifiablePresentation' && s.id?.includes('service-jsc-vp')
-    );
-    if (hasLinked) {
-      console.log(`[credential] ${bot.slug} already has Service credential linked — skipping`);
-      return { success: true, skipped: true };
-    }
-  } catch {
-    // DID doc not yet available (agent may still be starting), continue anyway
-  }
+  // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
 
   // Discover the Service JSC URL from the ECS Trust Registry
   const ecrTrPublicUrl = 'https://ecs-trust-registry.testnet.verana.network';
@@ -299,7 +287,7 @@ function buildHelmValues(bot, config) {
         { name: 'AGENT_PUBLIC_URL', value: bot.publicUrl },
         { name: 'USE_CORS', value: 'true' },
         { name: 'AGENT_LOG_LEVEL', value: '3' },
-        { name: 'ANONCREDS_SERVICE_BASE_URL', value: `https://${config.veranaOrgPublicUrl || 'organization.eafit.testnet.verana.network'}` },
+        { name: 'ANONCREDS_SERVICE_BASE_URL', value: (config.veranaOrgPublicUrl || 'https://organization.eafit.testnet.verana.network').replace(/\/$/, '') },
         { name: 'REDIRECT_DEFAULT_URL_TO_INVITATION_URL', value: 'true' },
         { name: 'POSTGRES_HOST', value: botPostgresHost },
         { name: 'POSTGRES_PORT', value: '5432' },
@@ -312,7 +300,8 @@ function buildHelmValues(bot, config) {
       ],
       ingress: {
         host: `${bot.slug}.${config.baseAgentDomain}`,
-        tlsSecret: config.baseAgentTlsSecret
+        // Per-agent secret so cert-manager provisions a dedicated cert per hostname
+        tlsSecret: `${bot.slug}.${config.baseAgentDomain}-cert`
       }
     }
   };

@@ -184,12 +184,6 @@ jobs:
             echo ""
             log "Processing agent: $AGENT_NAME ($AGENT_PUBLIC_URL)"
 
-            # Check if already has a Service credential linked
-            if has_linked_vp "$AGENT_PUBLIC_URL" "service"; then
-              ok "$AGENT_NAME — Service credential already linked, skipping"
-              continue
-            fi
-
             # Get agent DID from its public admin API
             CHILD_DID=$(curl -sf "${AGENT_ADMIN_API}/v1/agent" 2>/dev/null | jq -r '.publicDid // empty')
             if [ -z "$CHILD_DID" ]; then
@@ -212,8 +206,18 @@ jobs:
             echo "  Name: $AGENT_DISPLAY_NAME"
             echo "  Description: $AGENT_DESCRIPTION"
 
-            # Download logo
-            download_logo_data_uri "$SERVICE_LOGO_URL" > /tmp/service_logo_data_uri
+            # Try to get agent-specific logo from vs-agent StatefulSet env
+            AGENT_LOGO_URL=$(kubectl get statefulset "persona-${AGENT_NAME}" -n "$NAMESPACE" \
+              -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SERVICE_LOGO_URL")].value}' 2>/dev/null || true)
+            AGENT_LOGO_URL="${AGENT_LOGO_URL:-$SERVICE_LOGO_URL}"
+            echo "  Logo: $AGENT_LOGO_URL"
+
+            # Download logo (skip if empty)
+            if [ -n "$AGENT_LOGO_URL" ]; then
+              download_logo_data_uri "$AGENT_LOGO_URL" > /tmp/service_logo_data_uri 2>/dev/null || echo -n "" > /tmp/service_logo_data_uri
+            else
+              echo -n "" > /tmp/service_logo_data_uri
+            fi
 
             SERVICE_CLAIMS=$(jq -n \
               --rawfile logo /tmp/service_logo_data_uri \

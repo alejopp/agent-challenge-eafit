@@ -13,7 +13,8 @@ import { MCP_SERVICES } from '../services/catalog.js';
 import {
   prepareBotForPersistence,
   publishBot,
-  unpublishBot
+  unpublishBot,
+  issueServiceCredential
 } from '../services/deployment.js';
 
 function createUploader(config) {
@@ -155,6 +156,22 @@ export function botsRouter(config) {
     });
 
     return res.json({ bot, deployment: result });
+  });
+
+  router.post('/:botId/issue-credential', async (req, res) => {
+    const existingBot = getBotByIdForUser(req.params.botId, req.user.id);
+    if (!existingBot) {
+      return res.status(404).json({ error: 'Bot not found.' });
+    }
+    if (existingBot.status !== 'published') {
+      return res.status(400).json({ error: 'Bot must be published before issuing credentials.' });
+    }
+    try {
+      const result = await issueServiceCredential(existingBot, config);
+      return res.json({ result });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   });
 
   router.post('/:botId/unpublish', (req, res) => {
