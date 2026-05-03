@@ -227,8 +227,6 @@ function validateSharedInfrastructure(config) {
   const required = [
     ['SHARED_POSTGRES_PASSWORD', config.sharedPostgresPassword],
     ['SHARED_POSTGRES_USER', config.sharedPostgresUser],
-    ['OLLAMA_BASE_URL', config.ollamaBaseUrl],
-    ['OLLAMA_MODEL', config.ollamaModel],
     ['MCP_PUBLIC_BASE_URL', config.mcpPublicBaseUrl]
   ];
 

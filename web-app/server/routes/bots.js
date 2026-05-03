@@ -140,7 +140,13 @@ export function botsRouter(config) {
       return res.status(404).json({ error: 'Bot not found.' });
     }
 
-    const result = publishBot(existingBot, config);
+    let result;
+    try {
+      result = publishBot(existingBot, config);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
     const bot = updateBot(req.params.botId, req.user.id, {
       status: result.success ? 'published' : existingBot.status,
       deploymentStatus: result.success ? 'published' : 'error',

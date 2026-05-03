@@ -38,9 +38,12 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
 
   const handlePublish = async () => {
     setBusy(true);
+    setError('');
     try {
       const updatedBot = await onPublish(botId);
       setBot(updatedBot);
+    } catch (publishError) {
+      setError(publishError.message);
     } finally {
       setBusy(false);
     }
@@ -48,9 +51,12 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
 
   const handleUnpublish = async () => {
     setBusy(true);
+    setError('');
     try {
       const updatedBot = await onUnpublish(botId);
       setBot(updatedBot);
+    } catch (unpublishError) {
+      setError(unpublishError.message);
     } finally {
       setBusy(false);
     }
