@@ -63,6 +63,8 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
   };
 
   const [currentStep, setCurrentStep] = useState(0);
+
+  const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
