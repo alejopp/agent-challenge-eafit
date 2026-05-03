@@ -55,7 +55,11 @@ function buildAgentPack(bot, config) {
     rag: bot.ragFiles.length
       ? {
           provider: 'langchain',
-          docsPath: '/app/rag/docs'
+          docsPath: '/app/rag/docs',
+          vectorStore: {
+            type: 'redis',
+            indexName: bot.slug.replace(/-/g, '_')
+          }
         }
       : undefined,
     memory: {
@@ -177,6 +181,10 @@ function buildHelmValues(bot, config) {
       extraEnv: [
         ...(isTestnet ? [{ name: 'NODE_TLS_REJECT_UNAUTHORIZED', value: '0' }] : []),
         { name: 'AGENT_WALLET_ID', value: bot.personaName },
+        { name: 'SERVICE_NAME', value: bot.serviceName || bot.personaName },
+        { name: 'SERVICE_DESCRIPTION', value: bot.serviceDescription || '' },
+        { name: 'SERVICE_LOGO_URL', value: bot.personaPhotoPath ? `${config.appUrl}${bot.personaPhotoPath}` : '' },
+        { name: 'AGENT_PUBLIC_URL', value: bot.publicUrl },
         { name: 'USE_CORS', value: 'true' },
         { name: 'AGENT_LOG_LEVEL', value: '3' },
         { name: 'ANONCREDS_SERVICE_BASE_URL', value: `https://${config.veranaOrgPublicUrl || 'organization.eafit.testnet.verana.network'}` },
