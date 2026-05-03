@@ -22,8 +22,7 @@ export const config = {
     './helm/hologram-generic-ai-agent-chart',
   helmChartVersion: process.env.HELM_CHART_VERSION || 'v1.11.2',
   enableHelmDeploy: process.env.ENABLE_HELM_DEPLOY === 'true',
-  ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://ollama.team-g.svc.cluster.local:11434/v1',
-  ollamaModel: process.env.OLLAMA_MODEL || 'llama3.2:1b',
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
   sharedRedisUrl:
     process.env.SHARED_REDIS_URL || 'redis://redis-master.team-g.svc.cluster.local:6379',
   sharedPostgresHost: process.env.SHARED_POSTGRES_HOST || 'postgres.team-g.svc.cluster.local',
@@ -44,5 +43,5 @@ export const config = {
   mcpInternalBaseUrl:
     process.env.MCP_INTERNAL_BASE_URL ||
     `http://persona-ai-creator.${process.env.K8S_NAMESPACE || 'team-g'}.svc.cluster.local`,
-  llmProvider: process.env.LLM_PROVIDER || 'ollama'
+  llmProvider: process.env.LLM_PROVIDER || 'openai'
 };
