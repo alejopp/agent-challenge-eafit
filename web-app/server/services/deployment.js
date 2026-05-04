@@ -55,7 +55,14 @@ function buildAgentPack(bot, config) {
     rag: bot.ragFiles.length
       ? {
           provider: 'langchain',
-          docsPath: '/app/rag/docs'
+          remoteUrls: bot.ragFiles.map((f) => {
+            const base = (config.appUrl || config.baseUrl || '').replace(/\/$/, '');
+            return `${base}${f.path}`;
+          }),
+          vectorStore: {
+            type: 'redis',
+            indexName: bot.slug.replace(/-/g, '_')
+          }
         }
       : undefined,
     memory: {
