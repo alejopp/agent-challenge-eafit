@@ -10,12 +10,8 @@ export function AppShell({ user, onLogout, children }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div>
-          <div className="brand">
-            <div className="brand-mark">PA</div>
-            <div>
-              <strong>Persona AI</strong>
-              <span>Agent builder</span>
-            </div>
+          <div className="brand-logo">
+            <img src="/nextagent-logo.png" alt="NextAgent" className="sidebar-logo" />
           </div>
 
           <nav className="sidebar-nav">
@@ -25,12 +21,6 @@ export function AppShell({ user, onLogout, children }) {
               </NavLink>
             ))}
           </nav>
-
-          <div className="sidebar-card">
-            <p>Shared infra</p>
-            <strong>Ollama + Redis + Postgres</strong>
-            <span>One academic environment for `team-g`.</span>
-          </div>
         </div>
 
         <div className="sidebar-footer">

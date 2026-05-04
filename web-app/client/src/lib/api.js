@@ -62,5 +62,9 @@ export const api = {
   unpublishBot: (botId) =>
     request(`/api/bots/${botId}/unpublish`, {
       method: 'POST'
+    }),
+  deleteBot: (botId) =>
+    request(`/api/bots/${botId}`, {
+      method: 'DELETE'
     })
 };

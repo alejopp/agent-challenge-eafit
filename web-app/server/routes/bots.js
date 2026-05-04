@@ -5,6 +5,7 @@ import path from 'node:path';
 import multer from 'multer';
 import {
   createBot,
+  deleteBot,
   getBotByIdForUser,
   listBotsByUser,
   updateBot
@@ -188,6 +189,18 @@ export function botsRouter(config) {
     });
 
     return res.json({ bot, deployment: result });
+  });
+
+  router.delete('/:botId', (req, res) => {
+    const existingBot = getBotByIdForUser(req.params.botId, req.user.id);
+    if (!existingBot) {
+      return res.status(404).json({ error: 'Bot not found.' });
+    }
+    const deleted = deleteBot(req.params.botId, req.user.id);
+    if (!deleted) {
+      return res.status(500).json({ error: 'Failed to delete bot.' });
+    }
+    return res.status(204).send();
   });
 
   return router;
