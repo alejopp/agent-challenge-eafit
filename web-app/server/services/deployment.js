@@ -15,13 +15,12 @@ async function fetchJson(url, options = {}) {
 
 export async function issueServiceCredential(bot, config) {
   const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
-  const agentPublicUrl = bot.publicUrl.replace(/\/$/, '');
-  const agentAdminApi = agentPublicUrl;
+  const agentAdminApi = `http://${bot.releaseName}.${config.k8sNamespace}:3000`;
 
   // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
 
   // Discover the Service JSC URL from the ECS Trust Registry
-  const ecrTrPublicUrl = 'https://ecs-trust-registry.testnet.verana.network';
+  const ecrTrPublicUrl = 'https://trust-registry.testnet.verana.network';
   const vtjscRes = await fetchJson(`${ecrTrPublicUrl}/v1/vt/vtjsc?schemaBaseId=service`);
   if (!vtjscRes.ok) {
     console.error(`[credential] Failed to discover Service JSC: ${vtjscRes.status}`);
