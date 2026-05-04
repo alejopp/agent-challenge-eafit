@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BotForm } from '../components/BotForm';
+import { PublishingOverlay } from '../components/PublishingOverlay';
 
-export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish }) {
+export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onUnpublish }) {
   const navigate = useNavigate();
   const [bot, setBot] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState(''); // 'saving', 'publishing', 'unpublishing'
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -22,8 +25,25 @@ export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish
     return <div className="loading-card">Loading bot...</div>;
   }
 
+  const handleSave = async (formData) => {
+    setBusy(true);
+    setBusyAction('saving');
+    try {
+      const updatedBot = await onSave(botId, formData);
+      setBot(updatedBot);
+    } finally {
+      setBusy(false);
+      setBusyAction('');
+    }
+  };
+
+  const handleComplete = () => {
+    navigate('/');
+  };
+
   const handlePublish = async () => {
     setBusy(true);
+    setBusyAction('publishing');
     setError('');
     try {
       const updated = await onPublish(botId);
@@ -32,11 +52,13 @@ export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish
       setError(err.message);
     } finally {
       setBusy(false);
+      setBusyAction('');
     }
   };
 
   const handleUnpublish = async () => {
     setBusy(true);
+    setBusyAction('unpublishing');
     setError('');
     try {
       const updated = await onUnpublish(botId);
@@ -45,6 +67,7 @@ export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish
       setError(err.message);
     } finally {
       setBusy(false);
+      setBusyAction('');
     }
   };
 
@@ -199,6 +222,13 @@ export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish
           </button>
         )}
       </div>
+      
+      {busy && busyAction === 'publishing' && (
+        <PublishingOverlay message="Publishing to Kubernetes..." />
+      )}
+      {busy && busyAction === 'unpublishing' && (
+        <PublishingOverlay message="Unpublishing bot..." />
+      )}
     </div>
   );
 }

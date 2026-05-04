@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const categories = ['Professional Services', 'Healthcare', 'Education', 'Creative', 'Home Services'];
 
@@ -64,6 +64,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
 
   const [currentStep, setCurrentStep] = useState(0);
   const [stepError, setStepError] = useState('');
+  const justNavigatedToLastStep = useRef(false);
 
   const validateStep = (step) => {
     switch (step) {
@@ -97,6 +98,9 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
     }
     setStepError('');
     if (currentStep < steps.length - 1) {
+      if (currentStep === steps.length - 2) {
+        justNavigatedToLastStep.current = true;
+      }
       setCurrentStep(currentStep + 1);
     }
   };
@@ -105,28 +109,30 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
     e.preventDefault();
     e.stopPropagation();
     if (currentStep > 0) {
+      justNavigatedToLastStep.current = false;
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const error = validateStep(currentStep);
-    if (error) {
-      setStepError(error);
+  // Prevent accidental submission: block the save if the user just
+  // arrived at the last step via a rapid double-click on "Next →".
+  const handleSave = async () => {
+    if (justNavigatedToLastStep.current) {
+      justNavigatedToLastStep.current = false;
       return;
     }
-    setStepError('');
     await onSubmit(buildBotFormData(formState));
     if (onComplete) {
       onComplete();
     }
   };
+
+  // Reset the guard whenever the user navigates away from the last step.
+  useEffect(() => {
+    if (currentStep !== steps.length - 1) {
+      justNavigatedToLastStep.current = false;
+    }
+  }, [currentStep]);
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -284,9 +290,8 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 <button
                   type="button"
                   key={service.id}
-                  className={`mcp-card ${formState.mcpServices.includes(service.id) ? 'selected' : ''} ${
-                    service.comingSoon ? 'disabled' : ''
-                  }`}
+                  className={`mcp-card ${formState.mcpServices.includes(service.id) ? 'selected' : ''} ${service.comingSoon ? 'disabled' : ''
+                    }`}
                   onClick={() => !service.comingSoon && toggleService(service.id)}
                 >
                   <div>
@@ -480,9 +485,8 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
             <button
               type="button"
               key={service.id}
-              className={`mcp-card ${formState.mcpServices.includes(service.id) ? 'selected' : ''} ${
-                service.comingSoon ? 'disabled' : ''
-              }`}
+              className={`mcp-card ${formState.mcpServices.includes(service.id) ? 'selected' : ''} ${service.comingSoon ? 'disabled' : ''
+                }`}
               onClick={() => !service.comingSoon && toggleService(service.id)}
             >
               <div>
@@ -530,7 +534,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
   );
 
   return (
-    <form className="bot-form" onSubmit={handleSubmit}>
+    <form className="bot-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <div className="stepper">
         {steps.map((step, index) => (
           <div
@@ -567,7 +571,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
             Next →
           </button>
         ) : (
-          <button type="button" className="primary-button" disabled={submitting} onClick={handleSave}>
+          <button type="button" className="primary-button" onClick={handleSave} disabled={submitting}>
             {submitting ? 'Saving...' : 'Save bot'}
           </button>
         )}

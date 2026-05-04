@@ -3,6 +3,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import YAML from 'yaml';
 
+// Disable SSL verification globally for testnet environments
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, options);
   const text = await res.text();
@@ -14,22 +17,37 @@ async function fetchJson(url, options = {}) {
 }
 
 export async function issueServiceCredential(bot, config) {
-  const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
-  const agentPublicUrl = bot.publicUrl.replace(/\/$/, '');
-  const agentAdminApi = agentPublicUrl;
+  try {
+    const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
+  const agentAdminApi = `http://${bot.releaseName}.${config.k8sNamespace}:3000`;
 
   // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
 
   // Discover the Service JSC URL from the ECS Trust Registry
   const ecrTrPublicUrl = 'https://ecs-trust-registry.testnet.verana.network';
-  const vtjscRes = await fetchJson(`${ecrTrPublicUrl}/v1/vt/vtjsc?schemaBaseId=service`);
-  if (!vtjscRes.ok) {
-    console.error(`[credential] Failed to discover Service JSC: ${vtjscRes.status}`);
-    return { success: false, error: `Failed to discover Service JSC: ${vtjscRes.status}` };
+  console.log(`[credential] Discovering Service JSC from ${ecrTrPublicUrl}/.well-known/did.json...`);
+  
+  const didRes = await fetchJson(`${ecrTrPublicUrl}/.well-known/did.json`);
+  if (!didRes.ok) {
+    console.error(`[credential] Failed to fetch DID doc: ${didRes.status}`);
+    return { success: false, error: `Failed to fetch DID doc: ${didRes.status}` };
   }
-  const serviceJscUrl = vtjscRes.body?.items?.[0]?.id || vtjscRes.body?.[0]?.id;
+
+  const vpUrl = didRes.body?.service?.find(s => 
+    s.type === 'LinkedVerifiablePresentation' && s.id.includes('service-jsc-vp')
+  )?.serviceEndpoint;
+
+  if (!vpUrl) {
+    console.error('[credential] No Service JSC VP endpoint found in DID document');
+    return { success: false, error: 'No Service JSC VP endpoint found' };
+  }
+  console.log(`[credential] Resolved VP URL: ${vpUrl}`);
+
+  const vpRes = await fetchJson(vpUrl);
+  const serviceJscUrl = vpRes.body?.verifiableCredential?.[0]?.id;
+  console.log(`[credential] Resolved Service JSC URL: ${serviceJscUrl}`);
   if (!serviceJscUrl) {
-    console.error('[credential] No Service JSC URL found in Trust Registry');
+    console.error('[credential] No Service JSC URL found in VP');
     return { success: false, error: 'No Service JSC URL found' };
   }
 
@@ -47,6 +65,7 @@ export async function issueServiceCredential(bot, config) {
     console.error(`[credential] Could not get DID from agent ${bot.slug}`);
     return { success: false, error: 'Agent DID not available after retries' };
   }
+  console.log(`[credential] Agent DID: ${agentDid}`);
 
   // Build claims
   const logoUrl = bot.personaPhotoPath ? `${config.appUrl}${bot.personaPhotoPath}` : '';
@@ -67,8 +86,8 @@ export async function issueServiceCredential(bot, config) {
     description: bot.serviceDescription || bot.personaDescription || '',
     logo: logoDataUri,
     minimumAgeRequired: 0,
-    termsAndConditions: '',
-    privacyPolicy: ''
+    termsAndConditions: 'https://verana.io/terms',
+    privacyPolicy: 'https://verana.io/privacy'
   };
 
   // Issue credential from org admin API
@@ -82,8 +101,9 @@ export async function issueServiceCredential(bot, config) {
     console.error(`[credential] Issue failed (${issueRes.status}):`, issueRes.body);
     return { success: false, error: `Issue credential failed: ${issueRes.status}` };
   }
+  console.log('[credential] Credential issued successfully');
 
-  const credential = issueRes.body?.credential ?? issueRes.body;
+  const credential = issueRes.body?.credential || issueRes.body;
 
   // Delete any previous linked credential for this schema
   await fetch(`${agentAdminApi}/v1/vt/linked-credentials`, {
@@ -106,6 +126,10 @@ export async function issueServiceCredential(bot, config) {
 
   console.log(`[credential] Service credential issued and linked for ${bot.slug}`);
   return { success: true };
+  } catch (error) {
+    console.error(`[credential] Unexpected error in issueServiceCredential for ${bot.slug}:`, error);
+    return { success: false, error: error.message };
+  }
 }
 
 function slugify(input) {
