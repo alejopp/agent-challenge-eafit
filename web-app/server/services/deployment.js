@@ -24,19 +24,28 @@ export async function issueServiceCredential(bot, config) {
   // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
 
   // Discover the Service JSC URL from the ECS Trust Registry
-  const ecrTrPublicUrl = 'https://trust-registry.testnet.verana.network';
-  console.log(`[credential] Discovering Service JSC from ${ecrTrPublicUrl}...`);
-  const vtjscRes = await fetchJson(`${ecrTrPublicUrl}/v1/vt/vtjsc?schemaBaseId=service`).catch(e => {
-    console.error(`[credential] Trust Registry fetch failed: ${e.message}`);
-    throw e;
-  });
-  if (!vtjscRes.ok) {
-    console.error(`[credential] Failed to discover Service JSC: ${vtjscRes.status}`);
-    return { success: false, error: `Failed to discover Service JSC: ${vtjscRes.status}` };
+  const ecrTrPublicUrl = 'https://ecs-tr.testnet.verana.network';
+  console.log(`[credential] Discovering Service JSC from ${ecrTrPublicUrl}/.well-known/did.json...`);
+  
+  const didRes = await fetchJson(`${ecrTrPublicUrl}/.well-known/did.json`);
+  if (!didRes.ok) {
+    console.error(`[credential] Failed to fetch DID doc: ${didRes.status}`);
+    return { success: false, error: `Failed to fetch DID doc: ${didRes.status}` };
   }
-  const serviceJscUrl = vtjscRes.body?.items?.[0]?.id || vtjscRes.body?.[0]?.id;
+
+  const vpUrl = didRes.body?.service?.find(s => 
+    s.type === 'LinkedVerifiablePresentation' && s.id.includes('service-jsc-vp')
+  )?.serviceEndpoint;
+
+  if (!vpUrl) {
+    console.error('[credential] No Service JSC VP endpoint found in DID document');
+    return { success: false, error: 'No Service JSC VP endpoint found' };
+  }
+
+  const vpRes = await fetchJson(vpUrl);
+  const serviceJscUrl = vpRes.body?.verifiableCredential?.[0]?.id;
   if (!serviceJscUrl) {
-    console.error('[credential] No Service JSC URL found in Trust Registry');
+    console.error('[credential] No Service JSC URL found in VP');
     return { success: false, error: 'No Service JSC URL found' };
   }
 
