@@ -3,6 +3,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import YAML from 'yaml';
 
+// Disable SSL verification globally for testnet environments
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, options);
   const text = await res.text();
@@ -14,14 +17,19 @@ async function fetchJson(url, options = {}) {
 }
 
 export async function issueServiceCredential(bot, config) {
-  const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
+  try {
+    const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
   const agentAdminApi = `http://${bot.releaseName}.${config.k8sNamespace}:3000`;
 
   // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
 
   // Discover the Service JSC URL from the ECS Trust Registry
   const ecrTrPublicUrl = 'https://trust-registry.testnet.verana.network';
-  const vtjscRes = await fetchJson(`${ecrTrPublicUrl}/v1/vt/vtjsc?schemaBaseId=service`);
+  console.log(`[credential] Discovering Service JSC from ${ecrTrPublicUrl}...`);
+  const vtjscRes = await fetchJson(`${ecrTrPublicUrl}/v1/vt/vtjsc?schemaBaseId=service`).catch(e => {
+    console.error(`[credential] Trust Registry fetch failed: ${e.message}`);
+    throw e;
+  });
   if (!vtjscRes.ok) {
     console.error(`[credential] Failed to discover Service JSC: ${vtjscRes.status}`);
     return { success: false, error: `Failed to discover Service JSC: ${vtjscRes.status}` };
@@ -105,6 +113,10 @@ export async function issueServiceCredential(bot, config) {
 
   console.log(`[credential] Service credential issued and linked for ${bot.slug}`);
   return { success: true };
+  } catch (error) {
+    console.error(`[credential] Unexpected error in issueServiceCredential for ${bot.slug}:`, error);
+    return { success: false, error: error.message };
+  }
 }
 
 function slugify(input) {
