@@ -24,7 +24,7 @@ export async function issueServiceCredential(bot, config) {
   // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
 
   // Discover the Service JSC URL from the ECS Trust Registry
-  const ecrTrPublicUrl = 'https://ecs-tr.testnet.verana.network';
+  const ecrTrPublicUrl = 'https://ecs-trust-registry.testnet.verana.network';
   console.log(`[credential] Discovering Service JSC from ${ecrTrPublicUrl}/.well-known/did.json...`);
   
   const didRes = await fetchJson(`${ecrTrPublicUrl}/.well-known/did.json`);
@@ -41,9 +41,11 @@ export async function issueServiceCredential(bot, config) {
     console.error('[credential] No Service JSC VP endpoint found in DID document');
     return { success: false, error: 'No Service JSC VP endpoint found' };
   }
+  console.log(`[credential] Resolved VP URL: ${vpUrl}`);
 
   const vpRes = await fetchJson(vpUrl);
   const serviceJscUrl = vpRes.body?.verifiableCredential?.[0]?.id;
+  console.log(`[credential] Resolved Service JSC URL: ${serviceJscUrl}`);
   if (!serviceJscUrl) {
     console.error('[credential] No Service JSC URL found in VP');
     return { success: false, error: 'No Service JSC URL found' };
@@ -63,6 +65,7 @@ export async function issueServiceCredential(bot, config) {
     console.error(`[credential] Could not get DID from agent ${bot.slug}`);
     return { success: false, error: 'Agent DID not available after retries' };
   }
+  console.log(`[credential] Agent DID: ${agentDid}`);
 
   // Build claims
   const logoUrl = bot.personaPhotoPath ? `${config.appUrl}${bot.personaPhotoPath}` : '';
@@ -98,8 +101,9 @@ export async function issueServiceCredential(bot, config) {
     console.error(`[credential] Issue failed (${issueRes.status}):`, issueRes.body);
     return { success: false, error: `Issue credential failed: ${issueRes.status}` };
   }
+  console.log('[credential] Credential issued successfully');
 
-  const credential = issueRes.body?.credential ?? issueRes.body;
+  const credential = issueRes.body?.credential || issueRes.body;
 
   // Delete any previous linked credential for this schema
   await fetch(`${agentAdminApi}/v1/vt/linked-credentials`, {
