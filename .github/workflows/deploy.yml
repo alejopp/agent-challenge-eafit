@@ -15,6 +15,7 @@ on:
   push:
     branches:
       - main
+      - develop
     paths:
       - ".github/workflows/deploy.yml"
       - "web-app/**"
