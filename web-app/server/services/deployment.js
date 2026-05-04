@@ -83,8 +83,8 @@ export async function issueServiceCredential(bot, config) {
     description: bot.serviceDescription || bot.personaDescription || '',
     logo: logoDataUri,
     minimumAgeRequired: 0,
-    termsAndConditions: '',
-    privacyPolicy: ''
+    termsAndConditions: 'https://verana.io/terms',
+    privacyPolicy: 'https://verana.io/privacy'
   };
 
   // Issue credential from org admin API
