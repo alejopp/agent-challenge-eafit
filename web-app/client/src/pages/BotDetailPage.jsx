@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BotForm } from '../components/BotForm';
+import { PublishingOverlay } from '../components/PublishingOverlay';
 
 export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, onUnpublish }) {
   const navigate = useNavigate();
   const [bot, setBot] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState(''); // 'saving', 'publishing', 'unpublishing'
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -24,11 +26,13 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
 
   const handleSave = async (formData) => {
     setBusy(true);
+    setBusyAction('saving');
     try {
       const updatedBot = await onSave(botId, formData);
       setBot(updatedBot);
     } finally {
       setBusy(false);
+      setBusyAction('');
     }
   };
 
@@ -38,6 +42,7 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
 
   const handlePublish = async () => {
     setBusy(true);
+    setBusyAction('publishing');
     setError('');
     try {
       const updatedBot = await onPublish(botId);
@@ -46,11 +51,13 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
       setError(publishError.message);
     } finally {
       setBusy(false);
+      setBusyAction('');
     }
   };
 
   const handleUnpublish = async () => {
     setBusy(true);
+    setBusyAction('unpublishing');
     setError('');
     try {
       const updatedBot = await onUnpublish(botId);
@@ -59,6 +66,7 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
       setError(unpublishError.message);
     } finally {
       setBusy(false);
+      setBusyAction('');
     }
   };
 
@@ -102,6 +110,13 @@ export function BotDetailPage({ botId, mcpServices, loadBot, onSave, onPublish, 
           </div>
         </div>
       </aside>
+
+      {busy && busyAction === 'publishing' && (
+        <PublishingOverlay message="Publishing to Kubernetes..." />
+      )}
+      {busy && busyAction === 'unpublishing' && (
+        <PublishingOverlay message="Unpublishing bot..." />
+      )}
     </div>
   );
 }
