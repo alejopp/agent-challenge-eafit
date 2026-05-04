@@ -38,8 +38,8 @@ jobs:
 
       - name: Validate branch
         run: |
-          if [ "${GITHUB_REF_NAME}" != "main" ]; then
-            echo "::error::This workflow can only run on the main branch (current: ${GITHUB_REF_NAME})"
+          if [[ "${GITHUB_REF_NAME}" != "main" && "${GITHUB_REF_NAME}" != "develop" ]]; then
+            echo "::error::This workflow can only run on main or develop branches (current: ${GITHUB_REF_NAME})"
             exit 1
           fi
           echo "NETWORK=testnet" >> "$GITHUB_ENV"
