@@ -67,7 +67,6 @@ export function AuthPage({ onLogin, onRegister, submitting, error }) {
         </div>
 
         <div className="brand-personality">
-          <p className="brand-personality-label">PERSONALIDAD DE MARCA</p>
           <div className="brand-personality-grid">
             <div className="brand-trait">
               <svg className="brand-trait-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
