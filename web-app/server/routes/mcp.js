@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import * as z from 'zod/v4';
+import { getFreshGoogleToken } from '../utils/googleTokens.js';
 
 async function fetchJson(url) {
   const response = await fetch(url, {
@@ -53,6 +54,9 @@ async function runWikipedia(query) {
   };
 }
 
+let _mcpConfig = null;
+export function initMcpConfig(config) { _mcpConfig = config; }
+
 const MCP_SERVICES = {
   weather: {
     name: 'weather',
@@ -75,6 +79,55 @@ const MCP_SERVICES = {
     handler: async ({ query }) => runWikipedia(query)
   }
 };
+
+async function runGoogleCalendarListEvents(userId, { maxResults = 10, timeMin }) {
+  const accessToken = await getFreshGoogleToken(userId, _mcpConfig);
+  if (!accessToken) throw new Error('Google Calendar not connected. Please connect your account first.');
+
+  const params = new URLSearchParams({
+    maxResults: String(maxResults),
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    timeMin: timeMin || new Date().toISOString()
+  });
+
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+
+  if (!res.ok) throw new Error(`Google Calendar API error: ${res.status}`);
+  const data = await res.json();
+
+  return (data.items || []).map((e) => ({
+    id: e.id,
+    title: e.summary,
+    start: e.start?.dateTime || e.start?.date,
+    end: e.end?.dateTime || e.end?.date,
+    location: e.location || null,
+    description: e.description || null
+  }));
+}
+
+async function runGoogleCalendarCreateEvent(userId, { title, startDateTime, endDateTime, description, location }) {
+  const accessToken = await getFreshGoogleToken(userId, _mcpConfig);
+  if (!accessToken) throw new Error('Google Calendar not connected. Please connect your account first.');
+
+  const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      summary: title,
+      description,
+      location,
+      start: { dateTime: startDateTime },
+      end: { dateTime: endDateTime }
+    })
+  });
+
+  if (!res.ok) throw new Error(`Google Calendar API error: ${res.status}`);
+  const event = await res.json();
+  return { id: event.id, title: event.summary, link: event.htmlLink };
+}
 
 function createToolResult(result) {
   return {
@@ -134,8 +187,38 @@ function sendJsonRpcError(res, status, message, id = null, code = -32000) {
   });
 }
 
-export function mcpRouter() {
+export function mcpRouter(config) {
+  if (config) initMcpConfig(config);
   const router = Router();
+
+  router.post('/google-calendar/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const body = req.body || {};
+    const toolName = body.params?.name;
+
+    try {
+      let result;
+      if (toolName === 'list_events') {
+        result = await runGoogleCalendarListEvents(userId, body.params?.arguments || {});
+      } else if (toolName === 'create_event') {
+        result = await runGoogleCalendarCreateEvent(userId, body.params?.arguments || {});
+      } else {
+        return sendJsonRpcError(res, 400, `Unknown tool: ${toolName}`, body.id ?? null);
+      }
+
+      const server = new McpServer({ name: 'google-calendar-mcp-server', version: '1.0.0' }, { capabilities: { tools: {} } });
+      server.registerTool('list_events', { title: 'List Calendar Events', description: 'Lists upcoming events from Google Calendar.', inputSchema: { maxResults: z.number().optional(), timeMin: z.string().optional() } }, async (args) => createToolResult(await runGoogleCalendarListEvents(userId, args)));
+      server.registerTool('create_event', { title: 'Create Calendar Event', description: 'Creates a new event in Google Calendar.', inputSchema: { title: z.string(), startDateTime: z.string(), endDateTime: z.string(), description: z.string().optional(), location: z.string().optional() } }, async (args) => createToolResult(await runGoogleCalendarCreateEvent(userId, args)));
+
+      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+      return res;
+    } catch (error) {
+      console.error('[MCP Google Calendar] Error:', error.message);
+      if (!res.headersSent) return sendJsonRpcError(res, 500, error.message, body.id ?? null);
+    }
+  });
 
   router.get('/:serviceId/demo', async (req, res) => {
     try {

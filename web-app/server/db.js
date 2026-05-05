@@ -150,3 +150,26 @@ export function deleteBot(botId, userId) {
   writeStore(store);
   return true;
 }
+
+export function saveGoogleCalendarToken(userId, tokens) {
+  const store = readStore();
+  if (!store.googleCalendarTokens) store.googleCalendarTokens = {};
+  store.googleCalendarTokens[userId] = {
+    ...tokens,
+    savedAt: new Date().toISOString()
+  };
+  writeStore(store);
+}
+
+export function getGoogleCalendarToken(userId) {
+  const store = readStore();
+  return (store.googleCalendarTokens || {})[userId] || null;
+}
+
+export function deleteGoogleCalendarToken(userId) {
+  const store = readStore();
+  if (store.googleCalendarTokens?.[userId]) {
+    delete store.googleCalendarTokens[userId];
+    writeStore(store);
+  }
+}

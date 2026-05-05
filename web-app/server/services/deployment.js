@@ -14,10 +14,13 @@ function slugify(input) {
 }
 
 function buildMcpServers(bot, config) {
+  const base = (config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '');
   return bot.mcpServices.map((serviceId) => ({
     name: serviceId,
     transport: 'streamable-http',
-    url: `${(config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '')}/api/mcp/${serviceId}`
+    url: serviceId === 'google-calendar'
+      ? `${base}/api/mcp/google-calendar/${bot.userId}`
+      : `${base}/api/mcp/${serviceId}`
   }));
 }
 

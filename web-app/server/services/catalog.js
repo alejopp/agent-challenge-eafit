@@ -20,11 +20,10 @@ export const MCP_SERVICES = [
   {
     id: 'google-calendar',
     name: 'Google Calendar',
-    description: 'Reserved slot for future OAuth-based appointment scheduling.',
+    description: 'Reads and creates events in Google Calendar via OAuth.',
     category: 'Productivity',
-    transport: 'oauth-http',
+    transport: 'streamable-http',
     authRequired: true,
-    tools: ['list_events', 'create_event'],
-    comingSoon: true
+    tools: ['list_events', 'create_event']
   }
 ];

@@ -54,6 +54,7 @@ import { authRouter } from './routes/auth.js';
 import { botsRouter } from './routes/bots.js';
 import { metaRouter } from './routes/meta.js';
 import { mcpRouter } from './routes/mcp.js';
+import { calendarOAuthRouter } from './routes/calendarOAuth.js';
 import { setupOAuth, getOAuthRouter } from './oauth.js';
 
 const app = express();
@@ -100,7 +101,8 @@ app.get('/api/auth/oauth/test', (_req, res) => {
   res.json({ status: 'OAuth router is working' });
 });
 app.use('/api/meta', metaRouter(config));
-app.use('/api/mcp', mcpRouter());
+app.use('/api/mcp', mcpRouter(config));
+app.use('/api/calendar', calendarOAuthRouter(config));
 app.use('/api/bots', requireAuth, botsRouter(config));
 
 const clientBuildDir = path.join(config.rootDir, 'dist/client');

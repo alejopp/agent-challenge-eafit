@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api.js';
 
 export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish }) {
   const navigate = useNavigate();
@@ -7,12 +8,22 @@ export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(null);
+  const [calendarBusy, setCalendarBusy] = useState(false);
 
   useEffect(() => {
     loadBot(botId)
       .then(setBot)
       .catch((loadError) => setError(loadError.message));
   }, [botId, loadBot]);
+
+  useEffect(() => {
+    if (bot?.mcpServices?.includes('google-calendar')) {
+      api.getCalendarStatus()
+        .then((data) => setCalendarConnected(data.connected))
+        .catch(() => setCalendarConnected(false));
+    }
+  }, [bot]);
 
   if (error) {
     return <div className="error-banner">{error}</div>;
@@ -126,6 +137,42 @@ export function BotDetailPage({ botId, loadBot, onDelete, onPublish, onUnpublish
               <div key={service} className="rag-chip">{service}</div>
             ))}
           </div>
+          {bot.mcpServices.includes('google-calendar') && (
+            <div className="calendar-connect-section">
+              <div className="calendar-status">
+                <span className={`calendar-dot ${calendarConnected ? 'connected' : 'disconnected'}`} />
+                <span>
+                  {calendarConnected === null
+                    ? 'Checking Google Calendar...'
+                    : calendarConnected
+                    ? 'Google Calendar conectado'
+                    : 'Google Calendar no conectado'}
+                </span>
+              </div>
+              {calendarConnected === false && (
+                <a
+                  href="/api/calendar/connect"
+                  className="calendar-connect-btn"
+                >
+                  Conectar Google Calendar
+                </a>
+              )}
+              {calendarConnected === true && (
+                <button
+                  className="calendar-disconnect-btn"
+                  disabled={calendarBusy}
+                  onClick={async () => {
+                    setCalendarBusy(true);
+                    await api.disconnectCalendar();
+                    setCalendarConnected(false);
+                    setCalendarBusy(false);
+                  }}
+                >
+                  Desconectar
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {bot.ragFiles?.length > 0 && (

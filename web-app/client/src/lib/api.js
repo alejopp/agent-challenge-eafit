@@ -66,5 +66,8 @@ export const api = {
   deleteBot: (botId) =>
     request(`/api/bots/${botId}`, {
       method: 'DELETE'
-    })
+    }),
+  getCalendarStatus: () => request('/api/calendar/status'),
+  disconnectCalendar: () =>
+    request('/api/calendar/disconnect', { method: 'DELETE' })
 };
