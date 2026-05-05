@@ -181,20 +181,38 @@ jobs:
 
           for AGENT_NAME in $AGENTS; do
             AGENT_PUBLIC_URL="https://${AGENT_NAME}.${BASE_DOMAIN}"
-            AGENT_ADMIN_API="${AGENT_PUBLIC_URL}"
-
+            
             echo ""
             log "Processing agent: $AGENT_NAME ($AGENT_PUBLIC_URL)"
 
-            # Get agent DID from its public admin API
-            CHILD_DID=$(curl -sf "${AGENT_ADMIN_API}/v1/agent" 2>/dev/null | jq -r '.publicDid // empty')
+            # Create a secure tunnel to the agent's private Admin API (port 3000)
+            kubectl port-forward "pod/persona-${AGENT_NAME}-0" 3000:3000 -n "$NAMESPACE" &
+            PF_PID=$!
+            
+            # Wait for the tunnel and agent to be ready
+            AGENT_ADMIN_API="http://localhost:3000"
+            max_retries=15
+            count=0
+            while ! curl -sf "${AGENT_ADMIN_API}/v1/agent" >/dev/null 2>&1; do
+              sleep 2
+              count=$((count + 1))
+              if [ $count -ge $max_retries ]; then
+                err "Timed out waiting for agent $AGENT_NAME tunnel"
+                kill $PF_PID || true
+                continue 2
+              fi
+            done
+
+            # Get agent DID from the tunnel
+            CHILD_DID=$(curl -sf "${AGENT_ADMIN_API}/v1/agent" | jq -r '.publicDid // empty')
             if [ -z "$CHILD_DID" ]; then
-              err "$AGENT_NAME — Could not reach admin API at ${AGENT_ADMIN_API}/v1/agent, skipping"
+              err "$AGENT_NAME — Could not get DID from local API, skipping"
+              kill $PF_PID || true
               continue
             fi
             echo "  DID: $CHILD_DID"
 
-            # Extract agent-specific name and description from its ConfigMap
+            # Extract agent-specific metadata
             AGENT_DISPLAY_NAME=$(kubectl get configmap "persona-${AGENT_NAME}-agent-pack" -n "$NAMESPACE" \
               -o jsonpath='{.data.agent-pack\.yaml}' 2>/dev/null \
               | grep -E '^  displayName:' | sed 's/.*displayName: *//' | tr -d '"' | head -1)
@@ -232,7 +250,11 @@ jobs:
               --arg privacy "${SERVICE_PRIVACY:-}" \
               '{id: $id, name: $name, type: $type, description: $desc, logo: ($logo | rtrimstr("\n")), minimumAgeRequired: $age, termsAndConditions: $terms, privacyPolicy: $privacy}')
 
+            # Issue and link via the secure tunnel
             issue_remote_and_link "$ORG_ADMIN_API" "$AGENT_ADMIN_API" "service" "$SERVICE_JSC_URL" "$CHILD_DID" "$SERVICE_CLAIMS"
+            
+            # Close the tunnel
+            kill $PF_PID || true
           done
 
       # -----------------------------------------------------------------------
