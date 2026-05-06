@@ -169,6 +169,17 @@ jobs:
           kubectl get svc -n "$NAMESPACE" || true
           kubectl get deploy,statefulset,pvc -n "$NAMESPACE" || true
 
+      - name: Show persona-ai-creator pod logs
+        if: always()
+        run: |
+          POD=$(kubectl get pod -n "$NAMESPACE" -l "app.kubernetes.io/instance=$RELEASE_NAME" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          if [ -n "$POD" ]; then
+            echo "=== Logs for $POD (last 100 lines) ==="
+            kubectl logs "$POD" -n "$NAMESPACE" --tail=100 || true
+          else
+            echo "No pod found for release $RELEASE_NAME"
+          fi
+
       # -----------------------------------------------------------------------
       # GET-CREDENTIALS: Issue Service credential for all deployed agents
       # Uses the org public admin API — no port-forward needed.
