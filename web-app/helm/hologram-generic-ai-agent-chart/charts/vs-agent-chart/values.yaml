@@ -65,7 +65,9 @@ ingress:
     host: ""
 
 # Extra environment variables (extensible)
-extraEnv: []
+extraEnv:
+  - name: NODE_TLS_REJECT_UNAUTHORIZED
+    value: "0"
 
 # Persistent volume configuration for app
 storage:

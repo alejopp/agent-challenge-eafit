@@ -105,12 +105,25 @@ export async function issueServiceCredential(bot, config) {
 
   const credential = issueRes.body?.credential || issueRes.body;
 
-  // Delete any previous linked credential for this schema
-  await fetch(`${agentAdminApi}/v1/vt/linked-credentials`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ credentialSchemaId: serviceJscUrl })
-  }).catch(() => {});
+  // Deep Cleanup: Delete ALL existing linked credentials to avoid "Ghost Credentials" from old registries
+  try {
+    const linkedRes = await fetchJson(`${agentAdminApi}/v1/vt/linked-credentials`);
+    if (linkedRes.ok && Array.isArray(linkedRes.body)) {
+      for (const item of linkedRes.body) {
+        const schemaId = item.credential?.credentialSchema?.id;
+        if (schemaId) {
+          console.log(`[credential] Cleaning up existing credential: ${schemaId}`);
+          await fetch(`${agentAdminApi}/v1/vt/linked-credentials`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credentialSchemaId: schemaId })
+          }).catch(() => {});
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[credential] Failed to perform deep cleanup, continuing anyway...');
+  }
 
   // Link credential on agent
   const linkRes = await fetchJson(`${agentAdminApi}/v1/vt/linked-credentials`, {
