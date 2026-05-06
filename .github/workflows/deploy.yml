@@ -172,12 +172,15 @@ jobs:
       - name: Show persona-ai-creator pod logs
         if: always()
         run: |
-          POD=$(kubectl get pod -n "$NAMESPACE" -l "app.kubernetes.io/instance=$RELEASE_NAME" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          echo "=== All pods in namespace $NAMESPACE ==="
+          kubectl get pods -n "$NAMESPACE" || true
+          POD=$(kubectl get pod -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name" 2>/dev/null \
+            | grep "^$RELEASE_NAME" | head -1 || true)
           if [ -n "$POD" ]; then
-            echo "=== Logs for $POD (last 100 lines) ==="
-            kubectl logs "$POD" -n "$NAMESPACE" --tail=100 || true
+            echo "=== Logs for $POD (last 150 lines) ==="
+            kubectl logs "$POD" -n "$NAMESPACE" --tail=150 2>&1 || true
           else
-            echo "No pod found for release $RELEASE_NAME"
+            echo "No pod found matching prefix $RELEASE_NAME — listing all pods above"
           fi
 
       # -----------------------------------------------------------------------
