@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-const categories = ['Professional Services', 'Healthcare', 'Education', 'Creative', 'Home Services'];
+const categories = ['Servicios Profesionales', 'Salud', 'Educación', 'Creativo', 'Servicios del Hogar'];
 
 const steps = [
   { id: 'persona', label: 'Persona', number: 1 },
-  { id: 'service', label: 'Service', number: 2 },
-  { id: 'prompt', label: 'Prompt', number: 3 },
-  { id: 'mcp', label: 'MCP Services', number: 4 },
+  { id: 'service', label: 'Servicio', number: 2 },
+  { id: 'prompt', label: 'Instrucciones', number: 3 },
+  { id: 'mcp', label: 'Servicios MCP', number: 4 },
   { id: 'rag', label: 'RAG', number: 5 }
 ];
 
@@ -78,7 +78,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         if (!formState.serviceDescription.trim()) return 'La descripción del servicio es obligatoria.';
         return '';
       case 2:
-        if (!formState.prompt.trim()) return 'El system prompt es obligatorio.';
+        if (!formState.prompt.trim()) return 'Las instrucciones (system prompt) son obligatorias.';
         return '';
       case 3:
         if (formState.mcpServices.length === 0) return 'Debes seleccionar al menos un servicio MCP.';
@@ -114,8 +114,6 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
     }
   };
 
-  // Prevent accidental submission: block the save if the user just
-  // arrived at the last step via a rapid double-click on "Next →".
   const handleSave = async () => {
     if (justNavigatedToLastStep.current) {
       justNavigatedToLastStep.current = false;
@@ -127,7 +125,6 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
     }
   };
 
-  // Reset the guard whenever the user navigates away from the last step.
   useEffect(() => {
     if (currentStep !== steps.length - 1) {
       justNavigatedToLastStep.current = false;
@@ -140,40 +137,40 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         return (
           <section className="form-section">
             <div className="section-title">
-              <h2>Persona data</h2>
-              <p>Define the identity that users will meet on Hologram.</p>
+              <h2>Datos de la Persona</h2>
+              <p>Define la identidad que los usuarios conocerán en Hologram.</p>
             </div>
 
             <div className="grid two-columns">
               <label>
-                <span>Name</span>
+                <span>Nombre</span>
                 <input
                   value={formState.personaName}
                   onChange={(event) => setFormState((prev) => ({ ...prev, personaName: event.target.value }))}
-                  placeholder="Laura Plomeria"
+                  placeholder="Laura Plomería"
                   required
                 />
               </label>
 
               <label>
-                <span>Profession</span>
+                <span>Profesión</span>
                 <input
                   value={formState.profession}
                   onChange={(event) => setFormState((prev) => ({ ...prev, profession: event.target.value }))}
-                  placeholder="Residential plumber"
+                  placeholder="Plomera residencial"
                   required
                 />
               </label>
             </div>
 
             <label>
-              <span>Description</span>
+              <span>Descripción</span>
               <textarea
                 value={formState.personaDescription}
                 onChange={(event) =>
                   setFormState((prev) => ({ ...prev, personaDescription: event.target.value }))
                 }
-                placeholder="Friendly, precise, and practical."
+                placeholder="Amigable, precisa y práctica."
                 rows={4}
                 required
               />
@@ -183,12 +180,12 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
               {formState.personaPhotoPreview && (
                 <img
                   src={formState.personaPhotoPreview}
-                  alt="Persona preview"
+                  alt="Vista previa"
                   className="persona-photo-preview"
                 />
               )}
               <label className="file-field" style={{ flex: 1 }}>
-                <span>Persona photo</span>
+                <span>Foto de la persona</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -211,23 +208,23 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         return (
           <section className="form-section">
             <div className="section-title">
-              <h2>Service data</h2>
-              <p>Describe the service credential the bot will expose.</p>
+              <h2>Datos del Servicio</h2>
+              <p>Describe la credencial de servicio que el bot expondrá.</p>
             </div>
 
             <div className="grid two-columns">
               <label>
-                <span>Service name</span>
+                <span>Nombre del servicio</span>
                 <input
                   value={formState.serviceName}
                   onChange={(event) => setFormState((prev) => ({ ...prev, serviceName: event.target.value }))}
-                  placeholder="Emergency plumbing booking"
+                  placeholder="Reserva de plomería de emergencia"
                   required
                 />
               </label>
 
               <label>
-                <span>Category</span>
+                <span>Categoría</span>
                 <select
                   value={formState.serviceCategory}
                   onChange={(event) =>
@@ -244,13 +241,13 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
             </div>
 
             <label>
-              <span>Service description</span>
+              <span>Descripción del servicio</span>
               <textarea
                 value={formState.serviceDescription}
                 onChange={(event) =>
                   setFormState((prev) => ({ ...prev, serviceDescription: event.target.value }))
                 }
-                placeholder="Schedules visits, answers availability questions, and explains pricing."
+                placeholder="Agenda visitas, responde dudas de disponibilidad y explica precios."
                 rows={4}
                 required
               />
@@ -261,8 +258,8 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         return (
           <section className="form-section">
             <div className="section-title">
-              <h2>Prompt</h2>
-              <p>Give the model its behavior, tone, and operating boundaries.</p>
+              <h2>Instrucciones (Prompt)</h2>
+              <p>Define el comportamiento, tono y límites operativos del modelo.</p>
             </div>
 
             <label>
@@ -271,7 +268,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                 value={formState.prompt}
                 onChange={(event) => setFormState((prev) => ({ ...prev, prompt: event.target.value }))}
                 rows={7}
-                placeholder="You are Laura's AI agent. Be warm, concise, and action-oriented..."
+                placeholder="Eres el agente de IA de Laura. Sé amable, conciso y orientado a la acción..."
                 required
               />
             </label>
@@ -281,8 +278,8 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         return (
           <section className="form-section">
             <div className="section-title">
-              <h2>MCP services</h2>
-              <p>Select one or more services. Active now: {selectedCount}</p>
+              <h2>Servicios MCP</h2>
+              <p>Selecciona uno o más servicios. Activos: {selectedCount}</p>
             </div>
 
             <div className="mcp-grid">
@@ -299,7 +296,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
                     <span>{service.category}</span>
                   </div>
                   <p>{service.description}</p>
-                  <small>{service.comingSoon ? 'Coming soon' : service.tools.join(' · ')}</small>
+                  <small>{service.comingSoon ? 'Próximamente' : service.tools.join(' · ')}</small>
                 </button>
               ))}
             </div>
@@ -309,12 +306,12 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         return (
           <section className="form-section">
             <div className="section-title">
-              <h2>RAG documents</h2>
-              <p>Upload PDFs, notes, or service policies to ground the bot.</p>
+              <h2>Documentos RAG</h2>
+              <p>Sube PDFs, notas o políticas de servicio para fundamentar al bot.</p>
             </div>
 
             <label className="file-field">
-              <span>Knowledge files</span>
+              <span>Archivos de conocimiento</span>
               <input
                 type="file"
                 multiple
@@ -350,189 +347,6 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
     }
   };
 
-  const renderAllSections = () => (
-    <>
-      <section className="form-section">
-        <div className="section-title">
-          <h2>1. Persona data</h2>
-          <p>Define the identity that users will meet on Hologram.</p>
-        </div>
-
-        <div className="grid two-columns">
-          <label>
-            <span>Name</span>
-            <input
-              value={formState.personaName}
-              onChange={(event) => setFormState({ ...formState, personaName: event.target.value })}
-              placeholder="Laura Plomeria"
-              required
-            />
-          </label>
-
-          <label>
-            <span>Profession</span>
-            <input
-              value={formState.profession}
-              onChange={(event) => setFormState({ ...formState, profession: event.target.value })}
-              placeholder="Residential plumber"
-              required
-            />
-          </label>
-        </div>
-
-        <label>
-          <span>Description</span>
-          <textarea
-            value={formState.personaDescription}
-            onChange={(event) =>
-              setFormState({ ...formState, personaDescription: event.target.value })
-            }
-            placeholder="Friendly, precise, and practical."
-            rows={4}
-            required
-          />
-        </label>
-
-        <label className="file-field">
-          <span>Persona photo</span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) =>
-              setFormState({
-                ...formState,
-                personaPhotoFile: event.target.files?.[0] || null
-              })
-            }
-          />
-        </label>
-      </section>
-
-      <section className="form-section">
-        <div className="section-title">
-          <h2>2. Service data</h2>
-          <p>Describe the service credential the bot will expose.</p>
-        </div>
-
-        <div className="grid two-columns">
-          <label>
-            <span>Service name</span>
-            <input
-              value={formState.serviceName}
-              onChange={(event) => setFormState({ ...formState, serviceName: event.target.value })}
-              placeholder="Emergency plumbing booking"
-              required
-            />
-          </label>
-
-          <label>
-            <span>Category</span>
-            <select
-              value={formState.serviceCategory}
-              onChange={(event) =>
-                setFormState({ ...formState, serviceCategory: event.target.value })
-              }
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <label>
-          <span>Service description</span>
-          <textarea
-            value={formState.serviceDescription}
-            onChange={(event) =>
-              setFormState({ ...formState, serviceDescription: event.target.value })
-            }
-            placeholder="Schedules visits, answers availability questions, and explains pricing."
-            rows={4}
-            required
-          />
-        </label>
-      </section>
-
-      <section className="form-section">
-        <div className="section-title">
-          <h2>3. Prompt</h2>
-          <p>Give the model its behavior, tone, and operating boundaries.</p>
-        </div>
-
-        <label>
-          <span>System prompt</span>
-          <textarea
-            value={formState.prompt}
-            onChange={(event) => setFormState({ ...formState, prompt: event.target.value })}
-            rows={7}
-            placeholder="You are Laura's AI agent. Be warm, concise, and action-oriented..."
-            required
-          />
-        </label>
-      </section>
-
-      <section className="form-section">
-        <div className="section-title">
-          <h2>4. MCP services</h2>
-          <p>Select one or more services. Active now: {selectedCount}</p>
-        </div>
-
-        <div className="mcp-grid">
-          {mcpServices.map((service) => (
-            <button
-              type="button"
-              key={service.id}
-              className={`mcp-card ${formState.mcpServices.includes(service.id) ? 'selected' : ''} ${service.comingSoon ? 'disabled' : ''
-                }`}
-              onClick={() => !service.comingSoon && toggleService(service.id)}
-            >
-              <div>
-                <strong>{service.name}</strong>
-                <span>{service.category}</span>
-              </div>
-              <p>{service.description}</p>
-              <small>{service.comingSoon ? 'Coming soon' : service.tools.join(' · ')}</small>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="form-section">
-        <div className="section-title">
-          <h2>5. RAG documents</h2>
-          <p>Upload PDFs, notes, or service policies to ground the bot.</p>
-        </div>
-
-        <label className="file-field">
-          <span>Knowledge files</span>
-          <input
-            type="file"
-            multiple
-            onChange={(event) =>
-              setFormState({
-                ...formState,
-                ragFileList: Array.from(event.target.files || [])
-              })
-            }
-          />
-        </label>
-
-        {initialValue?.ragFiles?.length ? (
-          <div className="rag-list">
-            {initialValue.ragFiles.map((file) => (
-              <div key={file.path} className="rag-chip">
-                {file.originalName}
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </section>
-    </>
-  );
-
   return (
     <form className="bot-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <div className="stepper">
@@ -564,15 +378,15 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
           onClick={handlePrevious}
           disabled={currentStep === 0}
         >
-          ← Previous
+          ← Anterior
         </button>
         {currentStep < steps.length - 1 ? (
           <button type="button" className="primary-button" onClick={handleNext}>
-            Next →
+            Siguiente →
           </button>
         ) : (
           <button type="button" className="primary-button" onClick={handleSave} disabled={submitting}>
-            {submitting ? 'Saving...' : 'Save bot'}
+            {submitting ? 'Guardando...' : 'Guardar bot'}
           </button>
         )}
       </div>

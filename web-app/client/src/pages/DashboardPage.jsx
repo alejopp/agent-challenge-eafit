@@ -5,19 +5,19 @@ export function DashboardPage({ bots, stats, meta }) {
     <div className="dashboard-layout">
       <section className="stats-grid">
         <article className="stat-card">
-          <span>Total bots</span>
+          <span>Total de bots</span>
           <strong>{stats.totalBots}</strong>
         </article>
         <article className="stat-card">
-          <span>Published</span>
+          <span>Publicados</span>
           <strong>{stats.publishedBots}</strong>
         </article>
         <article className="stat-card">
-          <span>Drafts</span>
+          <span>Borradores</span>
           <strong>{stats.draftBots}</strong>
         </article>
         <article className="stat-card accent">
-          <span>MCP services</span>
+          <span>Servicios MCP</span>
           <strong>{stats.mcpServices}</strong>
         </article>
       </section>
@@ -25,13 +25,13 @@ export function DashboardPage({ bots, stats, meta }) {
       <section className="workspace-card">
         <div className="workspace-header">
           <div>
-            <h2>Bot workspace</h2>
+            <h2>Espacio de trabajo</h2>
             <p>
-              Namespace: <code>{meta.namespace}</code> · Domain suffix: <code>{meta.baseDomain}</code>
+              Namespace: <code>{meta.namespace}</code> · Dominio: <code>{meta.baseDomain}</code>
             </p>
           </div>
           <Link to="/bots/new" className="text-link">
-            New bot →
+            Nuevo bot →
           </Link>
         </div>
 
@@ -40,7 +40,9 @@ export function DashboardPage({ bots, stats, meta }) {
             {bots.map((bot) => (
               <Link key={bot.id} to={`/bots/${bot.id}`} className="bot-card">
                 <div className="bot-topline">
-                  <span className={`status-pill ${bot.status}`}>{bot.status}</span>
+                  <span className={`status-pill ${bot.status}`}>
+                    {bot.status === 'published' ? 'publicado' : bot.status === 'draft' ? 'borrador' : bot.status}
+                  </span>
                   <span>{bot.mcpServices.length} MCP</span>
                 </div>
                 <strong>{bot.personaName}</strong>
@@ -51,10 +53,10 @@ export function DashboardPage({ bots, stats, meta }) {
           </div>
         ) : (
           <div className="empty-state">
-            <strong>No bots yet</strong>
-            <p>Create your first Persona AI Agent to start building your portfolio.</p>
+            <strong>Aún no hay bots</strong>
+            <p>Crea tu primer Agente de IA para empezar a construir tu portafolio.</p>
             <Link to="/bots/new" className="primary-link">
-              Create bot
+              Crear bot
             </Link>
           </div>
         )}

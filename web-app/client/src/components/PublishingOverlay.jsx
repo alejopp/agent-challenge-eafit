@@ -1,4 +1,4 @@
-export function PublishingOverlay({ message = "Publishing to Kubernetes..." }) {
+export function PublishingOverlay({ message = "Publicando en Kubernetes..." }) {
   return (
     <div className="publishing-overlay">
       <div className="overlay-content">
@@ -14,7 +14,7 @@ export function PublishingOverlay({ message = "Publishing to Kubernetes..." }) {
         </div>
         <div className="overlay-text">
           <h2>{message}</h2>
-          <p>This may take a few moments. We are deploying the agent and issuing its service credentials.</p>
+          <p>Esto puede tardar unos momentos. Estamos desplegando el agente y vinculando sus credenciales de servicio.</p>
         </div>
       </div>
     </div>

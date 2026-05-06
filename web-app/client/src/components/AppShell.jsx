@@ -1,8 +1,8 @@
 import { Link, NavLink } from 'react-router-dom';
 
 const links = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/bots/new', label: 'New Bot' }
+  { to: '/', label: 'Panel de Control' },
+  { to: '/bots/new', label: 'Nuevo Bot' }
 ];
 
 export function AppShell({ user, onLogout, children }) {
@@ -31,7 +31,7 @@ export function AppShell({ user, onLogout, children }) {
               <span>{user.email}</span>
             </div>
             <button onClick={onLogout} className="ghost-button logout-button">
-              Logout
+              Cerrar sesión
             </button>
           </div>
         </div>
@@ -42,13 +42,13 @@ export function AppShell({ user, onLogout, children }) {
           <div>
             <div className="eyebrow">
               <span className="eyebrow-line" />
-              OPERATIONS HUB
+              CENTRO DE OPERACIONES
             </div>
-            <h1>My AI Bots</h1>
-            <p>Manage drafts, publish to Kubernetes, and open Hologram-ready URLs.</p>
+            <h1>Mis Bots de IA</h1>
+            <p>Gestiona borradores, despliega en Kubernetes y abre URLs listas para Hologram.</p>
           </div>
           <Link to="/bots/new" className="primary-link">
-            + Create bot
+            + Crear bot
           </Link>
         </header>
         {children}

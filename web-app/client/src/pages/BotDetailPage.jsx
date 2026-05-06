@@ -22,7 +22,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
   }
 
   if (!bot) {
-    return <div className="loading-card">Loading bot...</div>;
+    return <div className="loading-card">Cargando bot...</div>;
   }
 
   const handleSave = async (formData) => {
@@ -91,7 +91,9 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
     <div className="bot-summary-page">
       <div className="bot-summary-header">
         <div className="bot-summary-title">
-          <span className={`status-pill ${bot.status}`}>{bot.status}</span>
+          <span className={`status-pill ${bot.status}`}>
+            {bot.status === 'published' ? 'publicado' : bot.status === 'draft' ? 'borrador' : bot.status}
+          </span>
           <h1>{bot.personaName}</h1>
           <p className="bot-summary-profession">{bot.profession}</p>
         </div>
@@ -110,42 +112,42 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
         <div className="bot-summary-card">
           <h3>Persona</h3>
           <div className="bot-summary-field">
-            <span className="field-label">Name</span>
+            <span className="field-label">Nombre</span>
             <span className="field-value">{bot.personaName}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Profession</span>
+            <span className="field-label">Profesión</span>
             <span className="field-value">{bot.profession}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Description</span>
+            <span className="field-label">Descripción</span>
             <span className="field-value">{bot.personaDescription}</span>
           </div>
         </div>
 
         <div className="bot-summary-card">
-          <h3>Service</h3>
+          <h3>Servicio</h3>
           <div className="bot-summary-field">
-            <span className="field-label">Name</span>
+            <span className="field-label">Nombre</span>
             <span className="field-value">{bot.serviceName}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Category</span>
+            <span className="field-label">Categoría</span>
             <span className="field-value">{bot.serviceCategory}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Description</span>
+            <span className="field-label">Descripción</span>
             <span className="field-value">{bot.serviceDescription}</span>
           </div>
         </div>
 
         <div className="bot-summary-card">
-          <h3>System Prompt</h3>
+          <h3>Instrucciones (System Prompt)</h3>
           <pre className="bot-summary-prompt">{bot.prompt}</pre>
         </div>
 
         <div className="bot-summary-card">
-          <h3>MCP Services</h3>
+          <h3>Servicios MCP</h3>
           <div className="rag-list">
             {bot.mcpServices.map((service) => (
               <div key={service} className="rag-chip">{service}</div>
@@ -155,7 +157,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
 
         {bot.ragFiles?.length > 0 && (
           <div className="bot-summary-card">
-            <h3>RAG Documents</h3>
+            <h3>Documentos RAG</h3>
             <div className="rag-list">
               {bot.ragFiles.map((file) => (
                 <div key={file.path} className="rag-chip">{file.originalName}</div>
@@ -166,7 +168,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
 
         {bot.publicUrl && (
           <div className="bot-summary-card">
-            <h3>Public URL</h3>
+            <h3>URL Pública</h3>
             <a href={bot.publicUrl} target="_blank" rel="noreferrer" className="text-link">
               {bot.publicUrl}
             </a>
@@ -174,7 +176,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
         )}
 
         <div className="bot-summary-card deployment-card">
-          <h3>Deployment</h3>
+          <h3>Despliegue</h3>
           {bot.deploymentNotes && (
             <p className="deployment-notes">{bot.deploymentNotes}</p>
           )}
@@ -184,14 +186,14 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
               onClick={handlePublish}
               disabled={busy}
             >
-              Publish to Kubernetes
+              Publicar en Kubernetes
             </button>
             <button
               className="deploy-button"
               onClick={handleUnpublish}
               disabled={busy}
             >
-              Unpublish
+              Despublicar
             </button>
           </div>
         </div>
@@ -203,14 +205,14 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           onClick={() => navigate(`/bots/${botId}/edit`)}
           disabled={busy}
         >
-          ✏️ Edit bot
+          ✏️ Editar bot
         </button>
         <button
           className={`delete-button ${confirmDelete ? 'confirm' : ''}`}
           onClick={handleDelete}
           disabled={busy}
         >
-          {confirmDelete ? '⚠️ Confirm delete' : '🗑️ Delete bot'}
+          {confirmDelete ? '⚠️ Confirmar borrado' : '🗑️ Borrar bot'}
         </button>
         {confirmDelete && (
           <button
@@ -218,16 +220,16 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
             onClick={() => setConfirmDelete(false)}
             disabled={busy}
           >
-            Cancel
+            Cancelar
           </button>
         )}
       </div>
       
       {busy && busyAction === 'publishing' && (
-        <PublishingOverlay message="Publishing to Kubernetes..." />
+        <PublishingOverlay message="Publicando en Kubernetes..." />
       )}
       {busy && busyAction === 'unpublishing' && (
-        <PublishingOverlay message="Unpublishing bot..." />
+        <PublishingOverlay message="Despublicando bot..." />
       )}
     </div>
   );

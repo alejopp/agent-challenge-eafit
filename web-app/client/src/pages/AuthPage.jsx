@@ -113,19 +113,19 @@ export function AuthPage({ onLogin, onRegister, submitting, error }) {
       <div className="auth-panel auth-right">
         <div className="eyebrow">
           <span className="eyebrow-line" />
-          OPERATIONS HUB
+          CENTRO DE OPERACIONES
         </div>
-        <h2>{mode === 'login' ? 'Welcome back' : 'Create your workspace'}</h2>
+        <h2>{mode === 'login' ? 'Bienvenido de nuevo' : 'Crea tu espacio de trabajo'}</h2>
         <p>
           {mode === 'login'
-            ? 'Sign in to manage your NextAgent bot portfolio.'
-            : 'Create an account to start building intelligent agents.'}
+            ? 'Inicia sesión para gestionar tu portafolio de bots en NextAgent.'
+            : 'Crea una cuenta para empezar a construir agentes inteligentes.'}
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           {mode === 'register' ? (
             <label>
-              <span>Display name</span>
+              <span>Nombre a mostrar</span>
               <input
                 value={formState.displayName}
                 onChange={(event) =>
@@ -137,7 +137,7 @@ export function AuthPage({ onLogin, onRegister, submitting, error }) {
           ) : null}
 
           <label>
-            <span>Email</span>
+            <span>Correo electrónico</span>
             <input
               type="email"
               value={formState.email}
@@ -147,7 +147,7 @@ export function AuthPage({ onLogin, onRegister, submitting, error }) {
           </label>
 
           <label>
-            <span>Password</span>
+            <span>Contraseña</span>
             <input
               type="password"
               value={formState.password}
@@ -159,13 +159,13 @@ export function AuthPage({ onLogin, onRegister, submitting, error }) {
           {error ? <div className="error-banner">{error}</div> : null}
 
           <button className="primary-button" disabled={submitting}>
-            {submitting ? 'Working...' : mode === 'login' ? 'Sign in' : 'Create account'}
+            {submitting ? 'Cargando...' : mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
           </button>
         </form>
 
         <div className="auth-divider">
           <span className="auth-divider-line" />
-          <span className="auth-divider-text">or continue with</span>
+          <span className="auth-divider-text">o continúa con</span>
           <span className="auth-divider-line" />
         </div>
 
@@ -181,7 +181,7 @@ export function AuthPage({ onLogin, onRegister, submitting, error }) {
         </div>
 
         <button className="text-button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-          {mode === 'login' ? 'Need an account? Register for free' : 'Already have an account? Login'}
+          {mode === 'login' ? '¿No tienes cuenta? Regístrate gratis' : '¿Ya tienes cuenta? Inicia sesión'}
         </button>
       </div>
     </div>
