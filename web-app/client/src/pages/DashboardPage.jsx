@@ -26,9 +26,6 @@ export function DashboardPage({ bots, stats, meta }) {
         <div className="workspace-header">
           <div>
             <h2>Espacio de trabajo</h2>
-            <p>
-              Namespace: <code>{meta.namespace}</code> · Dominio: <code>{meta.baseDomain}</code>
-            </p>
           </div>
           <Link to="/bots/new" className="text-link">
             Nuevo bot →
