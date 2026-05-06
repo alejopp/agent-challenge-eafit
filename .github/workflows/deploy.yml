@@ -128,6 +128,18 @@ jobs:
             --set appSecrets.googleClientSecret="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
             --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml > /tmp/persona-ai/rendered.yaml
 
+      - name: Clear stuck Helm lock
+        if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
+        run: |
+          STATUS=$(helm status "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null | jq -r '.info.status' || echo "not-found")
+          echo "Helm release status: $STATUS"
+          if [[ "$STATUS" == "pending-upgrade" || "$STATUS" == "pending-install" || "$STATUS" == "pending-rollback" ]]; then
+            echo "Clearing stuck Helm lock for $RELEASE_NAME..."
+            helm rollback "$RELEASE_NAME" -n "$NAMESPACE" || \
+              kubectl delete secret -n "$NAMESPACE" \
+                $(kubectl get secret -n "$NAMESPACE" -l "owner=helm,name=$RELEASE_NAME" -o name 2>/dev/null | head -1) || true
+          fi
+
       - name: Deploy Persona AI Creator
         if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
         run: |
