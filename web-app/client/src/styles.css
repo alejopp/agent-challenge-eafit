@@ -1099,19 +1099,43 @@ code {
 /* Publishing Overlay */
 .publishing-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 9999;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+}
+
+.inline-publishing-status {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px dashed rgba(34, 211, 238, 0.4);
+  border-radius: 16px;
+  padding: 12px 20px;
+  margin-top: 10px;
+}
+
+.lottie-inline {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  animation: fadeIn 0.3s ease-out;
+  flex-shrink: 0;
+}
+
+.status-text strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--cyan);
+  margin-bottom: 2px;
+}
+
+.status-text p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .overlay-content {

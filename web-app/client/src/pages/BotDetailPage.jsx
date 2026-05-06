@@ -180,22 +180,29 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           {bot.deploymentNotes && (
             <p className="deployment-notes">{bot.deploymentNotes}</p>
           )}
-          <div className="stacked-actions">
-            <button
-              className="deploy-button"
-              onClick={handlePublish}
-              disabled={busy}
-            >
-              Publicar en Kubernetes
-            </button>
-            <button
-              className="deploy-button"
-              onClick={handleUnpublish}
-              disabled={busy}
-            >
-              Despublicar
-            </button>
-          </div>
+
+          {busy && (busyAction === 'publishing' || busyAction === 'unpublishing') ? (
+            <PublishingOverlay
+              message={busyAction === 'publishing' ? "Publicando en Kubernetes..." : "Despublicando bot..."}
+            />
+          ) : (
+            <div className="stacked-actions">
+              <button
+                className="deploy-button"
+                onClick={handlePublish}
+                disabled={busy}
+              >
+                Publicar en Kubernetes
+              </button>
+              <button
+                className="deploy-button"
+                onClick={handleUnpublish}
+                disabled={busy}
+              >
+                Despublicar
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -224,13 +231,6 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           </button>
         )}
       </div>
-      
-      {busy && busyAction === 'publishing' && (
-        <PublishingOverlay message="Publicando en Kubernetes..." />
-      )}
-      {busy && busyAction === 'unpublishing' && (
-        <PublishingOverlay message="Despublicando bot..." />
-      )}
     </div>
   );
 }
