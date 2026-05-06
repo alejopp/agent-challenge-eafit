@@ -66,5 +66,6 @@ export const api = {
   deleteBot: (botId) =>
     request(`/api/bots/${botId}`, {
       method: 'DELETE'
-    })
+    }),
+  getInvitation: (botId) => request(`/api/bots/${botId}/invitation`)
 };

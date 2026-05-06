@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BotForm } from '../components/BotForm';
 import { PublishingOverlay } from '../components/PublishingOverlay';
+import { api } from '../lib/api.js';
 
 export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onUnpublish }) {
   const navigate = useNavigate();
@@ -10,10 +11,18 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
   const [busyAction, setBusyAction] = useState(''); // 'saving', 'publishing', 'unpublishing'
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [invitationUrl, setInvitationUrl] = useState(null);
 
   useEffect(() => {
     loadBot(botId)
-      .then(setBot)
+      .then((loadedBot) => {
+        setBot(loadedBot);
+        if (loadedBot.status === 'published' && loadedBot.publicUrl) {
+          api.getInvitation(botId)
+            .then((data) => setInvitationUrl(data.invitationUrl))
+            .catch(() => setInvitationUrl(loadedBot.publicUrl));
+        }
+      })
       .catch((loadError) => setError(loadError.message));
   }, [botId, loadBot]);
 
@@ -100,7 +109,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
         {bot.publicUrl && bot.status === 'published' && (
           <div className="bot-summary-qr">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(bot.publicUrl)}&format=png&margin=10&ecc=H`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(invitationUrl || bot.publicUrl)}&format=png&margin=10&ecc=H`}
               alt="QR para escanear"
               className="bot-summary-qr-img"
             />

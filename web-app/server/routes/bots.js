@@ -175,6 +175,29 @@ export function botsRouter(config) {
     }
   });
 
+  router.get('/:botId/invitation', async (req, res) => {
+    const bot = getBotByIdForUser(req.params.botId, req.user.id);
+    if (!bot || bot.status !== 'published' || !bot.releaseName) {
+      return res.status(404).json({ error: 'Bot not published.' });
+    }
+    const adminApi = `http://${bot.releaseName}.${config.k8sNamespace}:3000`;
+    try {
+      const resp = await fetch(`${adminApi}/v1/oob/create-invitation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handshake: true })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const invitationUrl = data.invitationUrl || data.invitation_url || data.url;
+        if (invitationUrl) {
+          return res.json({ invitationUrl });
+        }
+      }
+    } catch { /* agent unreachable, fall through */ }
+    return res.json({ invitationUrl: bot.publicUrl });
+  });
+
   router.post('/:botId/unpublish', (req, res) => {
     const existingBot = getBotByIdForUser(req.params.botId, req.user.id);
     if (!existingBot) {
