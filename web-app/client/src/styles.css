@@ -865,6 +865,30 @@ textarea {
   margin: 0;
 }
 
+.bot-summary-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bot-summary-qr-img {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  border: 2px solid rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
+  background: #fff;
+  padding: 4px;
+}
+
+.bot-summary-qr-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
 .bot-summary-avatar {
   flex-shrink: 0;
 }

@@ -97,6 +97,17 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           <h1>{bot.personaName}</h1>
           <p className="bot-summary-profession">{bot.profession}</p>
         </div>
+        {bot.publicUrl && bot.status === 'published' && (
+          <div className="bot-summary-qr">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(bot.publicUrl)}&format=png&margin=4`}
+              alt="QR para escanear"
+              className="bot-summary-qr-img"
+            />
+            <span className="bot-summary-qr-label">Escanear para conectar</span>
+          </div>
+        )}
+
         <div className="bot-summary-avatar">
           {bot.personaPhotoPath ? (
             <img src={bot.personaPhotoPath} alt={bot.personaName} className="bot-summary-photo" />
