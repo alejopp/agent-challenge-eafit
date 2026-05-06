@@ -47,6 +47,8 @@ appSecrets:
   sharedPostgresPassword: ""
   openaiApiKey: ""
   kubeconfig: ""
+  googleClientId: ""
+  googleClientSecret: ""
 
 persistence:
   enabled: true

@@ -20,11 +20,11 @@ function GitHubIcon() {
 }
 
 function handleGoogleLogin() {
-  window.location.href = 'http://localhost:4000/api/auth/oauth/google';
+  window.location.href = '/api/auth/oauth/google';
 }
 
 function handleGitHubLogin() {
-  window.location.href = 'http://localhost:4000/api/auth/oauth/github';
+  window.location.href = '/api/auth/oauth/github';
 }
 
 export function AuthPage({ onLogin, onRegister, submitting, error }) {
