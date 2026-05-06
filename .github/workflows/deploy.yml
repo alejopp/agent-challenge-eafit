@@ -183,6 +183,30 @@ jobs:
             echo "No pod found matching prefix $RELEASE_NAME — listing all pods above"
           fi
 
+      - name: Probe VS Agent admin API (find OOB invitation endpoint)
+        if: always()
+        run: |
+          AGENT_POD=$(kubectl get pod -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name" 2>/dev/null \
+            | grep "^persona-alice-0" | head -1 || true)
+          if [ -z "$AGENT_POD" ]; then
+            echo "persona-alice pod not found, skipping probe"
+            exit 0
+          fi
+          echo "=== GET /v1/agent ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- http://localhost:3000/v1/agent 2>/dev/null || true
+          echo ""
+          echo "=== POST /v1/oob/create-invitation ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- --post-data='{"handshake":true}' \
+            --header='Content-Type: application/json' http://localhost:3000/v1/oob/create-invitation 2>/dev/null || true
+          echo ""
+          echo "=== POST /oob/create-invitation ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- --post-data='{}' \
+            --header='Content-Type: application/json' http://localhost:3000/oob/create-invitation 2>/dev/null || true
+          echo ""
+          echo "=== POST /v1/connections/create-invitation ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- --post-data='{}' \
+            --header='Content-Type: application/json' http://localhost:3000/v1/connections/create-invitation 2>/dev/null || true
+
       # -----------------------------------------------------------------------
       # GET-CREDENTIALS: Issue Service credential for all deployed agents
       # Uses the org public admin API — no port-forward needed.
