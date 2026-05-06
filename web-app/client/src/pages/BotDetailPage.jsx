@@ -100,7 +100,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
         {bot.publicUrl && bot.status === 'published' && (
           <div className="bot-summary-qr">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(bot.publicUrl)}&format=png&margin=4`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(bot.publicUrl)}&format=png&margin=10&ecc=H`}
               alt="QR para escanear"
               className="bot-summary-qr-img"
             />
