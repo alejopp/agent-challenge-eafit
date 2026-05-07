@@ -81,7 +81,6 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
         if (!formState.prompt.trim()) return 'Las instrucciones (system prompt) son obligatorias.';
         return '';
       case 3:
-        if (formState.mcpServices.length === 0) return 'Debes seleccionar al menos un servicio MCP.';
         return '';
       default:
         return '';
