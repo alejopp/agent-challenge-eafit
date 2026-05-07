@@ -71,12 +71,22 @@ export async function issueServiceCredential(bot, config) {
   const logoUrl = bot.personaPhotoPath ? `${config.appUrl}${bot.personaPhotoPath}` : '';
   let logoDataUri = '';
   if (logoUrl) {
+    console.log(`[credential] Attempting to fetch logo from: ${logoUrl}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
     try {
-      const logoRes = await fetch(logoUrl);
-      const buffer = await logoRes.arrayBuffer();
-      const mime = logoRes.headers.get('content-type') || 'image/png';
-      logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
-    } catch { /* logo download failed, continue without it */ }
+      const logoRes = await fetch(logoUrl, { signal: controller.signal });
+      if (logoRes.ok) {
+        const buffer = await logoRes.arrayBuffer();
+        const mime = logoRes.headers.get('content-type') || 'image/png';
+        logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
+        console.log('[credential] Logo successfully converted to DataURI');
+      }
+    } catch (err) {
+      console.warn(`[credential] Logo fetch failed or timed out: ${err.message}`);
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   const claims = {
@@ -215,7 +225,7 @@ function buildAgentPack(bot, config) {
         templateKey: 'greetingMessage'
       },
       authentication: {
-        enabled: true,
+        enabled: false,
         credentialDefinitionId: config.credentialDefinitionId,
         adminAvatars: []
       },
