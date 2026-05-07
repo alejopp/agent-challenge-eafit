@@ -44,7 +44,7 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
     serviceDescription: initialValue?.serviceDescription || '',
     serviceCategory: initialValue?.serviceCategory || categories[0],
     prompt: initialValue?.prompt || '',
-    mcpServices: initialValue?.mcpServices || ['weather', 'wikipedia'],
+    mcpServices: initialValue?.mcpServices || [],
     status: initialValue?.status || 'draft',
     personaPhotoPreview: initialValue?.personaPhotoPath || '',
     personaPhotoFile: null,

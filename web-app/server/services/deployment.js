@@ -166,11 +166,26 @@ function slugify(input) {
 }
 
 function buildMcpServers(bot, config) {
-  return bot.mcpServices.map((serviceId) => ({
-    name: serviceId,
-    transport: 'streamable-http',
-    url: `${(config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '')}/api/mcp/${serviceId}`
-  }));
+  const servers = [];
+  const selectedServices = bot.mcpServices || [];
+  
+  if (config.mcpPublicBaseUrl && selectedServices.includes('wikipedia')) {
+    servers.push({
+      name: 'wikipedia',
+      transport: 'streamable-http',
+      url: `${config.mcpPublicBaseUrl}/wikipedia`
+    });
+  }
+
+  const internalServices = selectedServices.filter(s => s !== 'wikipedia');
+  return [
+    ...servers,
+    ...internalServices.map((serviceId) => ({
+      name: serviceId,
+      transport: 'streamable-http',
+      url: `${(config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '')}/api/mcp/${serviceId}`
+    }))
+  ];
 }
 
 function buildAgentPack(bot, config) {
