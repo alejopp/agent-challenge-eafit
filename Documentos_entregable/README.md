@@ -36,7 +36,7 @@ Desarrollar **NextAgent**, una plataforma web que permita a **cualquier persona 
 - Automatizar el despliegue del agente como **VS Agent** en Kubernetes mediante Helm con un solo clic.
 - Emitir automáticamente una **credencial de servicio verificable** (firmada por EAFIT) al agente desplegado.
 - Generar un **QR de conexión** que permita a usuarios finales conectarse al agente desde Hologram.
-- Integrar capacidades externas mediante servidores **MCP** (clima, Wikipedia) para enriquecer las respuestas del agente.
+- Integrar capacidades externas mediante servidores **MCP** (clima, Wikipedia, calendario) para enriquecer las respuestas del agente.
 
 ---
 
@@ -68,6 +68,7 @@ Desarrollar **NextAgent**, una plataforma web que permita a **cualquier persona 
 ### Integraciones MCP (Model Context Protocol)
 - **Open-Meteo API** — datos meteorológicos en tiempo real
 - **Wikimedia API** — búsqueda y resúmenes de Wikipedia
+- **Google Calendar API** — gestión de calendario *(en ajuste)*
 
 ### Infraestructura Compartida (Cluster EAFIT)
 - **PostgreSQL** — base de datos con schema dedicado por bot
@@ -92,28 +93,28 @@ Desarrollar **NextAgent**, una plataforma web que permita a **cualquier persona 
                           │
                           ▼
 ┌──────────────────────────────────────────────────────────────┐
-│           Kubernetes — namespace: team-g (EAFIT)              │
-│                                                               │
+│           Kubernetes — namespace: team-g (EAFIT)             │
+│                                                              │
 │  ┌──────────────────┐    ┌───────────────────────────────┐   │
 │  │  NextAgent App   │    │  VS Agent por Bot             │   │
 │  │  (persona-ai-    │    │  persona-<slug>-0             │   │
 │  │   creator)       │    │  :3000 admin / :3011 público  │   │
 │  │                  │    └───────────────┬───────────────┘   │
-│  │  React + Vite    │                    │                    │
+│  │  React + Vite    │                    │                   │
 │  │  Express API     │    ┌───────────────▼───────────────┐   │
-│  │  Puerto 4000     │    │  Bot Chatbot                   │   │
+│  │  Puerto 4000     │    │  Bot Chatbot                  │   │
 │  └────────┬─────────┘    │  persona-<slug>-chatbot-0     │   │
 │           │              └───────────────────────────────┘   │
-│           │                                                   │
+│           │                                                  │
 │  ┌────────▼──────────────────────────────────────────────┐   │
-│  │            Infraestructura Compartida                  │   │
+│  │            Infraestructura Compartida                 │   │
 │  │     PostgreSQL  |  Redis  |  OpenAI API               │   │
-│  └────────────────────────────────────────────────────────┘  │
+│  └───────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────┘
                           ▲
                           │ CI/CD automático
 ┌─────────────────────────┴────────────────────────────────────┐
-│                   GitHub Actions                              │
+│                   GitHub Actions                             │
 │    Build Docker → Push Hub → Helm upgrade → Credencial VC    │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -230,6 +231,7 @@ El pipeline se activa automáticamente con cada `push` a `main`. Requiere los si
 | QR de conexión visible en la plataforma | ✅ Funcional |
 | Integración MCP — Clima (Open-Meteo) | ✅ Funcional |
 | Integración MCP — Wikipedia (Wikimedia) | ✅ Funcional |
+| Integración MCP — Calendario (Google Calendar) | 🔄 En ajuste |
 | Conexión desde app Hologram (QR del VS Agent) | ✅ Funcional |
 | QR de invitación OOB directo desde la plataforma | 🔄 En ajuste |
 | CI/CD con limpieza automática de lock Helm | ✅ Funcional |
@@ -252,7 +254,7 @@ El pipeline se activa automáticamente con cada `push` a `main`. Requiere los si
 - **Base de datos relacional**: migrar a PostgreSQL o SQLite para mayor robustez multiusuario.
 - **Multi-organización**: soporte para que distintas organizaciones usen la plataforma con sus propias credenciales Verana.
 - **Panel de métricas**: estadísticas de conversaciones, uso de MCP, tiempo de respuesta y estado de salud por agente.
-- **Más integraciones MCP**: calendario, CRM, bases de conocimiento propietarias, APIs REST personalizadas.
+- **Más integraciones MCP**: CRM, bases de conocimiento propietarias, APIs REST personalizadas.
 - **RAG mejorado**: motor de búsqueda vectorial (pgvector, ChromaDB) para contexto más preciso.
 - **Escalabilidad**: réplicas múltiples por bot y balanceo de carga en conexiones DIDComm.
 - **App móvil**: interfaz complementaria para gestión de agentes desde dispositivos móviles.

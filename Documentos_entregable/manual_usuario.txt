@@ -1,0 +1,465 @@
+================================================================================
+  MANUAL DE USUARIO — NEXTAGENT
+  Plataforma de Creación y Despliegue de Agentes de IA Verificables
+================================================================================
+
+  URL de la plataforma:
+    https://persona-ai.team-g.teams.eafit.testnet.verana.network
+
+  Autores:
+    - Oscar David Rojas Bedoya
+    - Yesid Alejandro Peláez Posada
+
+  Versión: 1.0 · Mayo 2026
+  Programa: Beca IA Ser ANDI · NODO EAFIT · Verana Foundation
+
+================================================================================
+  TABLA DE CONTENIDOS
+================================================================================
+
+  1. Introducción
+  2. Cómo ingresar al sistema
+  3. Cómo usar la solución
+  4. Funcionalidades principales
+  5. Casos de uso
+  6. Errores comunes y recomendaciones
+  Apéndice — Glosario
+
+
+================================================================================
+  1. INTRODUCCIÓN
+================================================================================
+
+NextAgent es una plataforma web que permite a cualquier persona — sin
+conocimientos técnicos — crear, configurar y publicar su propio Persona AI Agent
+verificable, accesible desde la aplicación Hologram Messaging.
+
+Un Persona AI Agent es un agente de inteligencia artificial que representa a una
+persona o servicio y puede interactuar con usuarios a través de Hologram de forma
+verificable y criptográficamente segura. Cada agente publicado en NextAgent:
+
+  - Posee una identidad DID (Decentralized Identifier) propia.
+  - Recibe una Credencial Verificable emitida por EAFIT a través de la red Verana.
+  - Establece conversaciones cifradas vía el protocolo DIDComm.
+  - Puede consultar información externa en tiempo real mediante integraciones MCP
+    (clima, Wikipedia, calendario).
+
+¿QUÉ NECESITA EL USUARIO?
+
+  Requisito           Detalle
+  ──────────────────  ────────────────────────────────────────────────────
+  Navegador web       Chrome, Firefox, Edge o Safari actualizado
+  Cuenta NextAgent    Registro con email o Google
+  App Hologram        Para conectarse al agente creado (opcional para probar)
+  Conexión a internet Requerida en todo momento
+
+  NO se requiere ningún conocimiento de programación, Docker, Kubernetes
+  ni infraestructura.
+
+
+================================================================================
+  2. CÓMO INGRESAR AL SISTEMA
+================================================================================
+
+2.1. ACCEDER A LA PLATAFORMA
+------------------------------
+
+Abre tu navegador web y dirígete a:
+
+  https://persona-ai.team-g.teams.eafit.testnet.verana.network
+
+Verás la pantalla de inicio de sesión de NextAgent.
+
+NOTA: La plataforma usa un certificado TLS del entorno testnet de EAFIT. Si el
+navegador muestra una advertencia de seguridad, haz clic en "Avanzado" y luego
+en "Continuar al sitio". Esto es normal en el entorno académico.
+
+
+2.2. OPCIÓN A — REGISTRO CON EMAIL Y CONTRASEÑA
+-------------------------------------------------
+
+Si es la primera vez que usas la plataforma:
+
+  1. Haz clic en "¿No tienes cuenta? Regístrate".
+  2. Ingresa tu nombre, correo electrónico y una contraseña (mínimo 8 caracteres).
+  3. Haz clic en "Crear cuenta".
+  4. Serás redirigido automáticamente al Dashboard principal.
+
+Si ya tienes cuenta:
+
+  1. Ingresa tu correo electrónico y contraseña.
+  2. Haz clic en "Iniciar sesión".
+
+
+2.3. OPCIÓN B — ACCESO CON GOOGLE OAUTH
+-----------------------------------------
+
+  1. En la pantalla de login, haz clic en "Continuar con Google".
+  2. Selecciona tu cuenta de Google en la ventana emergente.
+  3. Autoriza el acceso a NextAgent.
+  4. Serás redirigido al Dashboard principal.
+
+  Con Google no necesitas recordar contraseñas adicionales.
+  Es el método recomendado.
+
+
+2.4. CERRAR SESIÓN
+-------------------
+
+Desde cualquier pantalla, haz clic en tu nombre de usuario (esquina inferior
+izquierda) y selecciona "Cerrar sesión".
+
+
+================================================================================
+  3. CÓMO USAR LA SOLUCIÓN
+================================================================================
+
+3.1. VISIÓN GENERAL DEL FLUJO
+-------------------------------
+
+  Registro / Login
+        |
+        v
+  Dashboard — ver mis agentes
+        |
+        v
+  Crear nuevo agente --> Configurar --> Guardar
+        |
+        v
+  Publicar (un clic) --> Esperar despliegue (~5 min)
+        |
+        v
+  Obtener QR de conexión --> Compartir con usuarios finales
+        |
+        v
+  Usuarios finales se conectan desde Hologram
+
+
+3.2. PASO 1 — CREAR UN NUEVO AGENTE
+-------------------------------------
+
+Desde el Dashboard, haz clic en el botón "+ Nuevo Bot".
+
+Se abrirá el formulario de configuración del agente. Completa los campos:
+
+  DATOS DE IDENTIDAD DEL AGENTE
+
+  Campo           Descripción                              Ejemplo
+  ──────────────  ───────────────────────────────────────  ──────────────────────
+  Nombre          Nombre visible del agente                Dr. Carlos Asistente
+  Profesión       Tipo de servicio que ofrece              Médico general
+  Descripción     Texto breve para usuarios en Hologram    Agente para citas médicas
+  Foto de perfil  Imagen representativa (JPG/PNG, máx 2MB) Logo de la clínica
+
+  PERSONALIDAD DEL AGENTE (PROMPT)
+
+  El prompt del sistema define cómo se comporta el agente en las conversaciones.
+  Escribe instrucciones en lenguaje natural. Ejemplo:
+
+    "Eres un asistente médico amable y profesional. Ayudas a los pacientes
+     a agendar citas con el Dr. García. Responde siempre en español, de forma
+     clara y empática. No brindes diagnósticos médicos, solo gestiona citas."
+
+  CONSEJO: Sé específico sobre el tono, el idioma y lo que el agente debe
+  o no debe hacer.
+
+  DOCUMENTOS DE CONOCIMIENTO (RAG)
+
+  Sube archivos que el agente usará como base de conocimiento:
+    - Formatos aceptados: .pdf, .txt, .md
+    - Tamaño máximo por archivo: 5 MB
+    - Ejemplos: tarifario, preguntas frecuentes, manual de procedimientos.
+
+  SERVICIOS MCP (HERRAMIENTAS EXTERNAS)
+
+  Selecciona las herramientas que el agente podrá consultar:
+
+  Herramienta           Qué hace
+  ────────────────────  ────────────────────────────────────────────────────────
+  Clima (Open-Meteo)    Consulta el clima actual de cualquier ciudad
+  Wikipedia (Wikimedia) Busca y resume información de Wikipedia
+  Google Calendar       Gestiona eventos de calendario (en ajuste)
+
+
+3.3. PASO 2 — GUARDAR EL AGENTE
+---------------------------------
+
+Haz clic en "Guardar". El agente queda en estado "Borrador" — visible solo
+para ti en el Dashboard, sin estar publicado.
+
+Puedes editarlo en cualquier momento haciendo clic sobre su nombre.
+
+
+3.4. PASO 3 — PUBLICAR EL AGENTE
+----------------------------------
+
+  1. Abre el agente desde el Dashboard.
+  2. Haz clic en "Publicar".
+  3. Aparecerá un overlay de progreso con las etapas del despliegue:
+
+     [1/4] Preparando configuración del agente...
+     [2/4] Desplegando en Kubernetes...
+     [3/4] Esperando inicialización del agente...
+     [4/4] Emitiendo credencial verificable (EAFIT)...
+     ✓ ¡Agente publicado con éxito!
+
+  IMPORTANTE: El proceso tarda entre 3 y 7 minutos.
+  No cierres el navegador durante este tiempo.
+
+Una vez publicado, el agente mostrará:
+  - Su URL pública en agents.team-g.teams.eafit.testnet.verana.network
+  - Un código QR para que los usuarios finales se conecten desde Hologram.
+
+
+3.5. PASO 4 — CONECTAR DESDE HOLOGRAM
+---------------------------------------
+
+Comparte el QR de conexión o la URL pública del agente. Los usuarios finales:
+
+  1. Abren la app Hologram Messaging (iOS, Android o web: hologram.zone).
+  2. Escanean el QR o acceden a la URL del agente.
+  3. Hologram muestra la identidad verificable del agente (credencial EAFIT).
+  4. El usuario acepta la conexión y comienza a chatear.
+
+
+3.6. PASO 5 — DESPUBLICAR O ELIMINAR
+--------------------------------------
+
+  Despublicar: detiene el agente en Kubernetes pero conserva su configuración.
+    Haz clic en "Despublicar" en la página del agente.
+
+  Eliminar: borra permanentemente el agente y toda su configuración.
+    Esta acción NO se puede deshacer.
+
+
+================================================================================
+  4. FUNCIONALIDADES PRINCIPALES
+================================================================================
+
+4.1. GESTIÓN DE AGENTES (DASHBOARD)
+-------------------------------------
+
+El Dashboard es la pantalla principal. Desde aquí puedes:
+  - Ver todos los agentes creados con su estado (Borrador / Publicado).
+  - Acceder a la configuración de cada agente con un clic.
+  - Crear nuevos agentes con el botón "+ Nuevo Bot".
+  - Ver el estado de salud de cada agente publicado.
+
+
+4.2. CREACIÓN Y EDICIÓN DE AGENTES
+-------------------------------------
+
+  - Formulario guiado con todos los parámetros del agente.
+  - Subida de imagen de perfil directamente desde el formulario.
+  - Subida de documentos RAG (PDF, TXT, MD) para la base de conocimiento.
+  - Selección de servidores MCP disponibles en la plataforma.
+  - Editor de prompt del sistema con texto libre.
+  - Guardado automático de borradores.
+
+
+4.3. PUBLICACIÓN AUTOMATIZADA EN KUBERNETES
+---------------------------------------------
+
+Con un solo clic, la plataforma ejecuta automáticamente:
+
+  1. Generación de la configuración técnica (Helm values, agent-pack.yaml).
+  2. Creación de base de datos dedicada para el agente.
+  3. Despliegue del VS Agent y chatbot en el cluster Kubernetes de EAFIT.
+  4. Emisión de la Credencial Verificable de Servicio a través de la red Verana.
+  5. Asignación de un dominio público único para el agente.
+
+
+4.4. QR DE CONEXIÓN
+---------------------
+
+Cada agente publicado muestra un código QR en su página de detalle.
+Compartirlo es suficiente para que cualquier usuario con Hologram se conecte.
+
+
+4.5. INTEGRACIONES MCP
+------------------------
+
+Cuando un usuario pregunta sobre un tema cubierto por MCP, el agente consulta
+automáticamente la fuente externa y usa la información en su respuesta:
+
+  - "¿Qué tiempo hace hoy en Medellín?" → consulta Open-Meteo, responde con
+    datos en tiempo real.
+  - "¿Qué es el DIDComm?" → busca en Wikipedia y resume el artículo.
+
+El usuario final no necesita saber que se usan estas integraciones; el agente
+las usa de forma transparente.
+
+
+4.6. AUTENTICACIÓN SEGURA
+---------------------------
+
+  - Login local con correo y contraseña (cifrada con hash seguro).
+  - Google OAuth 2.0 para inicio de sesión rápido.
+  - JWT para manejo de sesiones con tiempo de vida limitado.
+  - Logout disponible en todo momento.
+
+
+================================================================================
+  5. CASOS DE USO
+================================================================================
+
+CASO 1 — PROFESIONAL INDEPENDIENTE (PLOMERO, ELECTRICISTA, MÉDICO)
+--------------------------------------------------------------------
+
+Objetivo: ofrecer a los clientes un agente que gestione citas y responda
+preguntas frecuentes.
+
+Flujo:
+  1. El profesional crea un agente con su nombre, foto y descripción del servicio.
+  2. Escribe un prompt: "Ayudas a agendar citas con el Sr. Pérez, plomero.
+     Horario: lunes a viernes 8 AM - 6 PM."
+  3. Sube un PDF con su tarifario de servicios como documento RAG.
+  4. Activa la integración de Google Calendar (cuando esté disponible).
+  5. Publica el agente y comparte el QR en WhatsApp o tarjeta de presentación.
+  6. Los clientes escanean el QR desde Hologram y agendan su cita conversando
+     con el agente.
+
+
+CASO 2 — INSTITUCIÓN EDUCATIVA
+--------------------------------
+
+Objetivo: agente que responde preguntas de aspirantes sobre programas académicos.
+
+Flujo:
+  1. Crea un agente llamado "Asistente de Admisiones EAFIT".
+  2. Prompt: "Eres el asistente de admisiones de EAFIT. Respondes preguntas
+     sobre programas, fechas de inscripción y requisitos."
+  3. Sube el documento oficial del proceso de admisiones como RAG.
+  4. Activa la integración de Wikipedia para preguntas generales.
+  5. Publica el agente e integra el QR en la página web institucional.
+
+
+CASO 3 — GUÍA TURÍSTICO CON CLIMA
+------------------------------------
+
+Objetivo: guía virtual que combina información histórica y clima local.
+
+Flujo:
+  1. Prompt: "Eres un guía turístico de Cartagena. Ayudas a los turistas
+     a planificar su visita con información histórica y clima actual."
+  2. Activa Open-Meteo (clima) y Wikipedia (información histórica).
+  3. El turista pregunta: "¿Qué puedo visitar hoy? ¿Va a llover?"
+  4. El agente responde con atracciones (Wikipedia) y pronóstico (Open-Meteo).
+
+
+CASO 4 — SOPORTE TÉCNICO EMPRESARIAL
+--------------------------------------
+
+Objetivo: primer nivel de soporte que filtra y responde consultas frecuentes.
+
+Flujo:
+  1. Prompt: "Eres el soporte técnico de nivel 1 de TechCorp. Resuelves dudas
+     básicas sobre nuestros productos y escals casos complejos al equipo humano."
+  2. Sube manuales y guías en PDF como base RAG.
+  3. Publica el agente y comparte el QR con clientes vía email o factura.
+
+
+================================================================================
+  6. ERRORES COMUNES Y RECOMENDACIONES
+================================================================================
+
+6.1. TABLA DE ERRORES FRECUENTES
+----------------------------------
+
+  Situación                          Causa probable             Solución
+  ─────────────────────────────────  ─────────────────────────  ─────────────────────────────────────────
+  Advertencia de certificado SSL     Cert. testnet autofirmado  Clic en "Avanzado" → "Continuar al sitio"
+  Login con Google no funciona       Ventana emergente bloqueada Permite popups para este sitio en el navegador
+  Publicación tarda más de 10 min    Alta carga en el cluster   Espera hasta 15 min; luego despublica y republica
+  Agente queda en estado "error"     Fallo Kubernetes o cred.   Despublica, verifica nombre sin caracteres
+                                                                especiales y republica
+  QR no conecta desde Hologram       Agente aún inicializándose Espera 2-3 min después de aparecer el QR
+  No puedo subir documento RAG       Formato o tamaño incorrecto Convierte a PDF/TXT; verifica que pese < 5 MB
+  No recuerdo mi contraseña          —                          Usa "Continuar con Google" con el mismo correo
+  El agente responde idioma incorr.  Prompt no especifica idioma Agrega al inicio: "Responde siempre en español."
+
+
+6.2. RECOMENDACIONES GENERALES
+--------------------------------
+
+  PARA UN AGENTE DE CALIDAD
+
+  - Sé específico en el prompt: incluye tono de voz, idioma, temas permitidos,
+    temas prohibidos y cómo responder cuando no sabe algo.
+
+  - Sube documentos relevantes: el RAG es la principal fuente de información
+    específica. Un PDF de preguntas frecuentes mejora significativamente las
+    respuestas.
+
+  - Prueba antes de compartir el QR: después de publicar, conéctate tú mismo
+    desde Hologram y verifica que responde correctamente.
+
+  PARA LA PUBLICACIÓN
+
+  - No uses caracteres especiales en el nombre (evita ñ, tildes, símbolos).
+    Usa letras, números y guiones.
+  - No cierres el navegador durante el proceso de publicación.
+  - La primera publicación es la más lenta (5-7 min). Las republicaciones
+    tras edición son más rápidas.
+
+  PARA HOLOGRAM
+
+  - Instala la versión más reciente de Hologram Messaging (iOS/Android).
+  - Si el QR no escanea, accede directamente a la URL pública del agente
+    desde el navegador del teléfono.
+  - La conexión inicial puede tardar 10-20 segundos en establecerse.
+
+  SEGURIDAD
+
+  - No compartas tu contraseña de NextAgent con nadie.
+  - Si usas Google OAuth, activa la verificación en dos pasos en tu cuenta.
+  - Los documentos RAG subidos son privados y exclusivos de tu agente.
+
+
+================================================================================
+  APÉNDICE — GLOSARIO
+================================================================================
+
+  DID
+    Decentralized Identifier — identificador único y verificable para un agente
+    o persona, no controlado por ninguna empresa centralizada.
+
+  Credencial Verificable (VC)
+    Documento digital firmado criptográficamente que certifica la identidad
+    o atributos de un agente.
+
+  DIDComm
+    Protocolo de comunicación cifrado punto a punto basado en DIDs,
+    usado por Hologram.
+
+  VS Agent
+    Verifiable Service Agent — componente que gestiona la identidad DID
+    del agente de IA.
+
+  MCP
+    Model Context Protocol — estándar que permite a los agentes IA acceder
+    a herramientas y datos externos durante la conversación.
+
+  RAG
+    Retrieval-Augmented Generation — técnica que permite al agente buscar
+    en documentos propios antes de responder.
+
+  Hologram
+    App de mensajería para interactuar con agentes IA verificables.
+    Disponible en iOS, Android y web (hologram.zone).
+
+  Verana
+    Red de confianza descentralizada basada en DIDs y Credenciales
+    Verificables W3C.
+
+  Kubernetes
+    Sistema de orquestación de contenedores donde se despliegan los agentes.
+
+  Helm
+    Gestor de paquetes para Kubernetes, usado internamente por NextAgent
+    para desplegar cada agente.
+
+================================================================================
+  Manual de Usuario — NextAgent v1.0
+  Verana Foundation × NODO EAFIT — Beca IA Ser ANDI — Mayo 2026
+================================================================================
