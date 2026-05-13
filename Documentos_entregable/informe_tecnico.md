@@ -36,6 +36,9 @@ lang: es
 8. [APIs, Modelos o Servicios Implementados](#8-apis-modelos-o-servicios-implementados)
 9. [Explicación de Componentes IA](#9-explicación-de-componentes-ia)
 10. [Resultados Obtenidos](#10-resultados-obtenidos)
+11. [Dificultades Encontradas](#11-dificultades-encontradas)
+12. [Recomendaciones](#12-recomendaciones)
+13. [Conclusiones](#13-conclusiones)
 
 ---
 
@@ -414,7 +417,50 @@ A diferencia de los chatbots estáticos, nuestros agentes son dinámicos. Gracia
 *   **Garantía de Confianza**: El 100% de los agentes publicados a través de la plataforma obtienen el sello de **"Verificado"** en la aplicación Hologram, respaldado por la infraestructura de EAFIT.
 *   **Flexibilidad Tecnológica**: Implementamos con éxito un sistema que soporta tanto LLMs comerciales (OpenAI) como locales (Ollama), demostrando soberanía tecnológica.
 *   **Democratización**: Se eliminó la barrera de entrada para perfiles no técnicos (como los casos de uso de plomeros, guías o soporte técnico), permitiéndoles poseer su propia identidad digital en la red Verana.
+---
+
+## 11. Dificultades Encontradas
+
+Durante el desarrollo del proyecto, el equipo enfrentó diversos desafíos técnicos y logísticos que requirieron soluciones creativas y coordinación técnica:
+
+| # | Problema | Fecha aproximada | Impacto | Cómo se solucionó |
+|---|---|---|---|---|
+| 1 | **Namespace eliminado accidentalmente** en el cluster de producción | 27/04/2026 | Alto — toda la plataforma caída | Se solicitó un nuevo namespace al equipo de EAFIT vía Discord; se restauró la configuración en el mismo día |
+| 2 | **Timing de credencialización Verana** — el VS Agent tardaba entre 3 y 7 minutos en registrar su DID antes de estar listo para recibir una VC | 1–5/05/2026 | Alto — los agentes fallaban en publicación | Se implementó un bucle de sondeo con backoff exponencial en el backend; la plataforma espera pacientemente y notifica al usuario el progreso en tiempo real |
+| 3 | **Lock de Helm en despliegues fallidos** — un deploy fallido dejaba el release en estado "pending" bloqueando todos los deploys siguientes | 3–4/05/2026 | Alto — CI/CD inoperante | Se agregó un step automático de limpieza del lock (`helm rollback`) antes de cada deploy en el workflow de GitHub Actions |
+| 4 | **Google OAuth fallando en producción** — las URLs de callback apuntaban a localhost, causando error en el servidor | 5–6/05/2026 | Medio — OAuth inutilizable en producción | Se migraron las URLs a rutas relativas en el frontend + configuración de `APP_URL` y `CLIENT_DEV_URL` correctas en los Helm values del deployment |
+| 5 | **QR no funcional directamente con Hologram** — el QR generado llevaba a la página web del VS Agent en lugar del parámetro OOB de invitación directa | 5–6/05/2026 | Bajo-Medio — QR funciona pero requiere paso adicional | Solución parcial: el QR lleva a la página del VS Agent donde está el QR de Hologram. La solución definitiva (extraer el parámetro OOB) sigue en desarrollo |
+| 6 | **Agente no respondía durante la demo intermedia** (6/5) | 6/05/2026 | Alto para la demo | Identificado el día siguiente como un error en la integración del MCP Wikipedia. Corregido por Alejandro el 7/5/2026 |
+| 7 | **Descarga de logo fallaba silenciosamente** en el proceso de credencialización, causando que la VC se emitiera sin imagen | 6–7/05/2026 | Medio — credenciales sin avatar | Se eliminó la redirección de errores a `/dev/null` en el script bash, se agregó manejo explícito de errores y skip del agente si la imagen falla |
+| 8 | **TLS autofirmado** rechazaba conexiones HTTPS internas de Node.js | Persistente | Bajo-Medio — solo en testnet | Configuración controlada `NODE_TLS_REJECT_UNAUTHORIZED=0` en el entorno testnet académico |
+| 9 | **Permisos de GitHub** — Oscar no podía crear ramas en el repositorio | 1/05/2026 | Bajo — bloqueó el inicio de trabajo en el repo | Configuración correcta de la clave SSH local; Alejandro ajustó los permisos del repositorio |
+| 10 | **Chatbot respondía en idioma incorrecto** o con respuestas inconsistentes | 3/05/2026 | Medio — experiencia de usuario deficiente | Migración de Groq a OpenAI GPT-4o-mini como modelo base del chatbot |
 
 ---
 
-*Documento generado para el reto "Agentes IA Verificables con Hologram" — Verana Foundation × NODO EAFIT — Beca IA Ser ANDI — Mayo 2026*
+## 12. Recomendaciones
+
+### Recomendaciones generales
+
+#### Para un agente de calidad
+
+- **Sé específico en el prompt**: cuanto más detallado, mejor se comportará el agente. Incluye: tono de voz, idioma, temas que SÍ puede tratar, temas que NO debe tratar, y cómo debe responder cuando no sabe algo.
+
+- **Sube documentos relevantes**: el RAG (base de conocimiento) es la principal fuente de información específica del agente. Un PDF bien estructurado con preguntas frecuentes mejora significativamente la calidad de las respuestas.
+
+- **Prueba antes de compartir el QR**: después de publicar, conéctate tú mismo al agente desde Hologram y verifica que responde correctamente antes de compartirlo con otros.
+
+#### Para la publicación
+
+- **No uses caracteres especiales** en el nombre del agente (evita ñ, tildes, símbolos). Usa letras, números y guiones.
+- **No cierres el navegador** durante el proceso de publicación; espera a que aparezca el mensaje de éxito.
+- **La primera publicación es la más lenta** (5–7 min). Las republicaciones tras edición son más rápidas.
+---
+
+## 13. Conclusiones
+
+1.  **Democratización de la Identidad Digital**: El proyecto demuestra que es posible abstraer la complejidad de los protocolos de identidad descentralizada (DIDs y VCs) mediante interfaces intuitivas. NextAgent permite que el valor de la red Verana llegue a usuarios finales y profesionales sin conocimientos técnicos, cumpliendo el objetivo de democratizar la confianza en la IA.
+2.  **Eficiencia en el Despliegue de Agentes**: La automatización integral del pipeline (desde la configuración hasta el despliegue en Kubernetes y la emisión de credenciales) reduce drásticamente las barreras de entrada. Lo que antes requería intervención experta ahora es un proceso reproducible, escalable y auditable que se completa en minutos.
+3.  **Valor del Ecosistema Académico-Industrial**: La colaboración entre NODO EAFIT y Verana Foundation proporciona un entorno ideal para la experimentación con tecnologías de vanguardia. Este reto ha permitido aplicar conocimientos de orquestación, desarrollo full-stack e IA en un caso de uso real con impacto directo en la forma en que interactuaremos con agentes inteligentes en el futuro.
+
+---
