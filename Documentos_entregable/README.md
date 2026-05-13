@@ -9,8 +9,8 @@
 
 | Nombre | Rol |
 |---|---|
-| **Oscar David Rojas Bedoya** | Desarrollo full-stack, infraestructura Kubernetes |
-| **Yesid Alejandro Peláez Posada** | Desarrollo full-stack, integración Verana/Hologram |
+| **Oscar David Rojas Bedoya** | Desarrollo full-stack, infraestructura Kubernetes | integración Verana/Hologram
+| **Yesid Alejandro Peláez Posada** | Desarrollo full-stack, integración Verana/Hologram | infraestructura Kubernetes |
 
 ---
 
@@ -81,14 +81,14 @@ Desarrollar **NextAgent**, una plataforma web que permita a **cualquier persona 
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                      Usuario Final                            │
-│               (App Hologram / Navegador Web)                  │
+│                      Usuario Final                           │
+│               (App Hologram / Navegador Web)                 │
 └─────────────────────────┬────────────────────────────────────┘
                           │ Escanea QR de conexión
                           ▼
 ┌──────────────────────────────────────────────────────────────┐
-│               Red Verana / Hologram                           │
-│     DIDComm over WSS — identidad verificable criptográf.      │
+│               Red Verana / Hologram                          │
+│     DIDComm over WSS — identidad verificable criptográf.     │
 └─────────────────────────┬────────────────────────────────────┘
                           │
                           ▼
@@ -243,8 +243,8 @@ El pipeline se activa automáticamente con cada `push` a `main`. Requiere los si
 - **QR de invitación OOB**: el QR en la plataforma actualmente redirige a la página pública del VS Agent. La conexión directa en un único escaneo desde Hologram está en proceso de ajuste (pendiente identificar el endpoint correcto de `/oob/create-invitation` del VS Agent).
 - **Almacenamiento de datos**: el store de bots usa un archivo JSON. No está preparado para alta concurrencia ni múltiples instancias del backend.
 - **Namespace único**: todos los agentes comparten el namespace `team-g` del cluster académico, con recursos de red y cómputo compartidos.
-- **TLS en testnet**: el cluster usa certificados autofirmados. El backend desactiva la verificación SSL interna (`NODE_TLS_REJECT_UNAUTHORIZED=0`).
 - **Tiempo de publicación**: el despliegue de un agente tarda entre 3 y 7 minutos por los tiempos de inicialización del VS Agent y el proceso de credencialización.
+- **Espacio limitado en el cluster**: permite publicar una cantidad limitada de agentes.
 
 ---
 
@@ -303,7 +303,6 @@ Proyecto_Final_EquipoG/
 ## 🌐 URLs de Producción
 
 - **Plataforma NextAgent:** `https://persona-ai.team-g.teams.eafit.testnet.verana.network`
-- **Ejemplo — Agente Alice (Hologram):** `https://alice.agents.team-g.teams.eafit.testnet.verana.network`
 
 ---
 

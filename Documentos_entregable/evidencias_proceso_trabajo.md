@@ -42,7 +42,7 @@ El equipo inició con 3 integrantes (6/4/2026). Uno abandonó el programa antes 
 | Integrante | Rol Principal | Responsabilidades |
 |---|---|---|
 | **Yesid Alejandro Peláez Posada** | Frontend · UI/UX| Tech Lead · Backend · DevOps | Infraestructura Kubernetes, Helm charts, CI/CD GitHub Actions, integración VS Agent y red Verana, emisión de credenciales verificables, MCP servers, chatbot, base de datos |
-| **Oscar David Rojas Bedoya** | Frontend · UI/UX · Documentación | Interfaz React, identidad de marca NextAgent, integración OAuth Google, implementación QR, CSS/UX, documentación técnica, README, manual de usuario, evidencias | MCP servers, Infraestructura Kubernetes, integración VS Agent y red Verana
+| **Oscar David Rojas Bedoya** | Frontend · UI/UX · Documentación | MCP servers, Infraestructura Kubernetes, integración VS Agent y red Verana| Interfaz React, identidad de marca NextAgent, integración OAuth Google, implementación QR, CSS/UX, documentación técnica, README, manual de usuario, evidencias 
 
 ### División por módulo
 
@@ -52,8 +52,8 @@ El equipo inició con 3 integrantes (6/4/2026). Uno abandonó el programa antes 
 | API REST (Express.js) | Alejandro | Oscar (endpoints de autenticación) |
 | Kubernetes / Helm deployment | Alejandro | Oscar |
 | GitHub Actions CI/CD | Alejandro | Oscar (ajustes de secretos) |
-| VS Agent + DIDComm | Alejandro | Oscar |
-| Credenciales Verana | Alejandro | — |
+| VS Agent + DIDComm | Alejandro | - |
+| Credenciales Verana | Alejandro | Oscar |
 | MCP servers (Clima, Wikipedia) | Alejandro | Oscar (Google Calendar) |
 | Identidad de marca / UI NextAgent | Oscar | — |
 | Google OAuth 2.0 | Oscar | — |
@@ -154,7 +154,6 @@ La bitácora se construyó a partir del historial de conversaciones de WhatsApp 
 | 6/4/2026 | Creación del grupo de WhatsApp GRUPO G - VERANA | Oscar |
 | 8/4/2026 | Primer contacto del equipo; definición de inicio desde cero; creación del repositorio GitHub | Oscar |
 | 8/4/2026 | Instalación del entorno local (WSL, dependencias Verana) | Todos |
-| 9/4/2026 | Intento de primera reunión (reprogramada por evento de Oscar) | — |
 | 11/4/2026 | Reunión coordinada para sábado 10:30/11:30 am | Todos |
 | 13/4/2026 | Definición de horario de reuniones: martes, viernes y sábados | Todos |
 | 13/4/2026 | Recolección de usuarios GitHub; invitaciones al repositorio | Oscar |
@@ -184,7 +183,6 @@ La bitácora se construyó a partir del historial de conversaciones de WhatsApp 
 |---|---|---|
 | 22/4/2026 | Múltiples pods activos simultáneamente en el cluster | Alejandro |
 | 22/4/2026 | Reunión vespertina — preparación del pitch | Oscar, Alejandro |
-| 23/4/2026 | Reunión cancelada por trabajo de Oscar; propuesta de ideas para pitch | Todos |
 | 24/4/2026 | Reunión 7pm — revisión de arquitectura y pitch | Oscar, Alejandro |
 | 25/4/2026 | Oscar comparte video del prototipo de web app con login y creación de bot | Oscar |
 | 27/4/2026 | **Incidente crítico:** namespace eliminado accidentalmente → solicitud de nuevo namespace | Alejandro |
@@ -242,7 +240,8 @@ La bitácora se construyó a partir del historial de conversaciones de WhatsApp 
 
 ### Reuniones en Microsoft Teams
 
-Se realizaron reuniones periódicas a través de Microsoft Teams. El historial de capturas de pantalla de las reuniones se encuentra en los archivos extraídos del documento `Historial_reuniones_teams_GrupoG.docx`.
+Se realizaron reuniones periódicas a través de Microsoft Teams. El historial de capturas de pantalla de las reuniones se encuentra la carpeta `evidencias_imagenes
+`.
 
 **Enlace recurrente de reunión:**
 ```
@@ -433,6 +432,7 @@ El repositorio tiene commits de tres contribuidores: **Yesid Alejandro Peláez P
 | 10 | **Frontend servido desde Express** en producción | Servidor separado (Nginx) | Un solo contenedor simplifica el despliegue en Kubernetes |
 | 11 | **Nombre "NextAgent"** para la plataforma | "Persona AI Creator" (nombre base) | Identidad de marca más impactante, memorable y orientada al usuario final |
 | 12 | **Limpieza automática del lock Helm** en CI/CD | Limpieza manual | Los despliegues fallidos bloqueaban el pipeline; la automatización previene el problema |
+| 13 | **Desarrollo colaborativo con Git y GitHub**  Trabajo colaborativo en equipo | Permite darle orden y estructura al proyecto | Creación de ramas para cada funcionalidad y merge a develop |
 
 ---
 
@@ -451,7 +451,6 @@ El repositorio tiene commits de tres contribuidores: **Yesid Alejandro Peláez P
 | 5 | **QR no funcional directamente con Hologram** — el QR generado llevaba a la página web del VS Agent en lugar del parámetro OOB de invitación directa | 5–6/05/2026 | Bajo-Medio — QR funciona pero requiere paso adicional | Solución parcial: el QR lleva a la página del VS Agent donde está el QR de Hologram. La solución definitiva (extraer el parámetro OOB) sigue en desarrollo |
 | 6 | **Agente no respondía durante la demo intermedia** (6/5) | 6/05/2026 | Alto para la demo | Identificado el día siguiente como un error en la integración del MCP Wikipedia. Corregido por Alejandro el 7/5/2026 |
 | 7 | **Descarga de logo fallaba silenciosamente** en el proceso de credencialización, causando que la VC se emitiera sin imagen | 6–7/05/2026 | Medio — credenciales sin avatar | Se eliminó la redirección de errores a `/dev/null` en el script bash, se agregó manejo explícito de errores y skip del agente si la imagen falla |
-| 8 | **TLS autofirmado** rechazaba conexiones HTTPS internas de Node.js | Persistente | Bajo-Medio — solo en testnet | Configuración controlada `NODE_TLS_REJECT_UNAUTHORIZED=0` en el entorno testnet académico |
 | 9 | **Permisos de GitHub** — Oscar no podía crear ramas en el repositorio | 1/05/2026 | Bajo — bloqueó el inicio de trabajo en el repo | Configuración correcta de la clave SSH local; Alejandro ajustó los permisos del repositorio |
 | 10 | **Chatbot respondía en idioma incorrecto** o con respuestas inconsistentes | 3/05/2026 | Medio — experiencia de usuario deficiente | Migración de Groq a OpenAI GPT-4o-mini como modelo base del chatbot |
 
@@ -500,7 +499,7 @@ Las siguientes capturas fueron compartidas durante el desarrollo vía WhatsApp y
 | 02/05/2026 | Preview de la foto del agente | Oscar |
 | 03/05/2026 | Screenshot del login con GitHub OAuth funcional | Oscar |
 | 04/05/2026 | Screenshot de conexión con MCP Google Calendar | Oscar |
-| 06/05/2026 | Screenshot de Hologram — agente respondiendo | Alejandro |
+| 06/05/2026 | Screenshot de QR en el resumen del agente | Oscar |
 
 ---
 

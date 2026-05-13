@@ -9,8 +9,8 @@
 
 | Name | Role |
 |---|---|
-| **Oscar David Rojas Bedoya** | Full-stack development, Kubernetes infrastructure |
-| **Yesid Alejandro Peláez Posada** | Full-stack development, Verana/Hologram integration |
+| **Oscar David Rojas Bedoya** | Full-stack development, Kubernetes infrastructure | Verana/Hologram integration |
+| **Yesid Alejandro Peláez Posada** | Full-stack development, Verana/Hologram integration| Kubernetes infrastructure |
 
 ---
 

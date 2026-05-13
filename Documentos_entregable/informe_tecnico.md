@@ -20,7 +20,6 @@ lang: es
 | **Equipo** | Oscar David Rojas Bedoya · Yesid Alejandro Peláez Posada |
 | **Repositorio** | https://github.com/alejopp/agent-challenge-eafit |
 | **Plataforma en producción** | https://persona-ai.team-g.teams.eafit.testnet.verana.network |
-| **Agente de ejemplo** | https://alice.agents.team-g.teams.eafit.testnet.verana.network |
 | **Fecha** | Mayo 2026 |
 
 ---
@@ -53,7 +52,7 @@ El reto propuesto — *"Agentes IA Verificables con Hologram"* — tiene como tr
 
 ### 1.4. Concepto de Persona AI Agent
 
-Un **Persona AI Agent** representa a una persona real y actúa en su nombre dentro del ecosistema Hologram. Cada agente posee:
+Un **AI Agent** representa a una persona real y actúa en su nombre dentro del ecosistema Hologram. Cada agente posee:
 
 - Una **identidad DID** propia, verificable criptográficamente.
 - Una **Credencial Verificable de servicio**, emitida por una institución de confianza (EAFIT).
@@ -108,7 +107,7 @@ La ausencia de herramientas de democratización en el ecosistema Verana implica:
 
 ### 3.1. Propuesta de Valor
 
-**NextAgent** es una plataforma web que elimina la complejidad técnica del despliegue de agentes IA verificables, entregando a cualquier usuario —sin conocimientos de programación— la capacidad de crear, configurar y publicar su propio **Persona AI Agent** en el ecosistema Hologram/Verana con un solo clic.
+**NextAgent** es una plataforma web que elimina la complejidad técnica del despliegue de agentes IA verificables, entregando a cualquier usuario —sin conocimientos de programación— la capacidad de crear, configurar y publicar su propio **AI Agent** en el ecosistema Hologram/Verana con un solo clic.
 
 ### 3.2. Por qué esta solución es la adecuada
 
@@ -161,7 +160,7 @@ La solución reutiliza infraestructura compartida del cluster de EAFIT (PostgreS
 
 ### 4.1. Enfoque general
 
-El desarrollo siguió un **enfoque ágil e iterativo**, priorizando la entrega de valor funcional en cada ciclo. Las decisiones técnicas se tomaron de forma incremental, validando cada componente de la arquitectura antes de avanzar al siguiente. Se utilizó **Windsurf IDE** con asistencia de IA (Cascade) como entorno de desarrollo principal.
+El desarrollo siguió un **enfoque ágil e iterativo**, priorizando la entrega de valor funcional en cada ciclo. Las decisiones técnicas se tomaron de forma incremental, validando cada componente de la arquitectura antes de avanzar al siguiente. Se utilizó **Windsurf IDE**, **Antigravity IDE** y **Codex IDE** con asistencia de IA como entorno de desarrollo principal.
 
 ### 4.2. Stack tecnológico
 
@@ -219,18 +218,18 @@ Se definió una arquitectura full-stack de tres capas:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Frontend (React + Vite)               │
-│    AuthPage │ Dashboard │ BotDetailPage │ QR de conexión  │
+│                    Frontend (React + Vite)              │
+│    AuthPage │ Dashboard │ BotDetailPage │ QR de conexión│
 └──────────────────────────┬──────────────────────────────┘
                            │ API REST / JWT
 ┌──────────────────────────▼──────────────────────────────┐
-│                  Backend (Node.js + Express)             │
-│    Auth (local + Google OAuth) │ CRUD bots │ deployment   │
+│                  Backend (Node.js + Express)            │
+│    Auth (local + Google OAuth) │ CRUD bots │ deployment │
 └──────────┬──────────────────────────────────────────────┘
            │
 ┌──────────▼──────────────────────────────────────────────┐
-│         Kubernetes — namespace team-g (EAFIT)            │
-│   VS Agent por bot │ Bot Chatbot │ PostgreSQL │ Redis     │
+│         Kubernetes — namespace team-g (EAFIT)           │
+│   VS Agent por bot │ Bot Chatbot │ PostgreSQL │ Redis   │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -277,17 +276,7 @@ Se definió una arquitectura full-stack de tres capas:
 - Corrección del manejo de logos: descarga, codificación base64, validación previa.
 - Logging detallado del proceso de credencialización para depuración.
 
-### 4.4. Desafíos técnicos y resolución
-
-| Desafío | Solución aplicada |
-|---|---|
-| **Timeout en emisión de credenciales**: el DID del VS Agent tarda entre 3 y 7 minutos en registrarse | Bucle de sondeo con backoff exponencial sobre `/v1/agent` hasta obtener DID válido |
-| **Lock de Helm en despliegues fallidos**: releases quedan en estado "operation in progress" | Step previo en CI/CD que ejecuta `helm rollback --force` para limpiar el lock |
-| **QR de invitación OOB**: el VS Agent no expone el parámetro OOB directamente | Solución temporal: QR redirige a página pública del VS Agent; se exploran endpoints alternativos |
-| **TLS con certificados autofirmados en testnet**: fallos SSL en llamadas internas Node.js | `NODE_TLS_REJECT_UNAUTHORIZED=0` en entorno interno (documentado como exclusivo para testnet) |
-| **Google OAuth en producción**: URLs de callback apuntaban a localhost | Migración a rutas relativas en frontend; configuración de `APP_URL` en Helm values de producción |
-
-### 4.5. Estado final del proyecto
+### 4.4. Estado final del proyecto
 
 | Funcionalidad | Estado |
 |---|---|
@@ -303,7 +292,7 @@ Se definió una arquitectura full-stack de tres capas:
 | Integración MCP — Google Calendar | 🔄 En ajuste |
 | QR de invitación OOB directa | 🔄 En ajuste |
 
-### 4.6. Estructura del repositorio
+### 4.5. Estructura del repositorio
 
 ```
 agent-challenge-eafit/

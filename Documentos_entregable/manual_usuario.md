@@ -97,7 +97,7 @@ Si ya tienes cuenta:
 
 ### 2.4. Cerrar sesión
 
-Desde cualquier pantalla, haz clic en tu nombre de usuario (esquina superior derecha) y selecciona **"Cerrar sesión"**.
+Desde cualquier pantalla, haz clic en tu nombre de usuario (esquina inferior izquierda) y selecciona **"Cerrar sesión"**.
 
 ---
 
@@ -216,9 +216,9 @@ Comparte el **QR de conexión** o la **URL pública** del agente con los usuario
 
 ---
 
-### 3.6. Paso 5 — Despublicar o eliminar un agente
+### 3.6. Paso 5 — Desmontar o eliminar un agente
 
-- **Despublicar**: detiene el agente en Kubernetes pero conserva su configuración. Haz clic en **"Despublicar"** en la página del agente. El agente deja de ser accesible desde Hologram.
+- **Desmontar**: detiene el agente en Kubernetes pero conserva su configuración. Haz clic en **"Desmontar"** en la página del agente. El agente deja de ser accesible desde Hologram.
 - **Eliminar**: borra permanentemente el agente y toda su configuración. Esta acción **no se puede deshacer**.
 
 ---
