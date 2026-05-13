@@ -30,6 +30,12 @@ lang: es
 2. [Definición del Problema](#2-definición-del-problema)
 3. [Justificación de la Solución](#3-justificación-de-la-solución)
 4. [Metodología de Desarrollo](#4-metodología-de-desarrollo)
+5. [Arquitectura Técnica](#5-arquitectura-técnica)
+6. [Flujo de Datos](#6-flujo-de-datos)
+7. [Bases de Datos Utilizadas](#7-bases-de-datos-utilizadas)
+8. [APIs, Modelos o Servicios Implementados](#8-apis-modelos-o-servicios-implementados)
+9. [Explicación de Componentes IA](#9-explicación-de-componentes-ia)
+10. [Resultados Obtenidos](#10-resultados-obtenidos)
 
 ---
 
@@ -319,6 +325,95 @@ agent-challenge-eafit/
     ├── README-en.md             # Documentación en inglés
     └── informe_tecnico.md       # Este documento
 ```
+---
+
+## 5. Arquitectura Técnica
+
+La arquitectura de **NextAgent** se fundamenta en un modelo de microservicios distribuido sobre **Kubernetes** en el namespace `team-g`. El diseño prioriza la escalabilidad de agentes individuales mientras reutiliza componentes críticos de infraestructura.
+
+### 5.1. Componentes del Sistema
+
+*   **Plataforma de Control (Backend Express)**: Actúa como el centro de mando. Gestiona la autenticación de usuarios, la persistencia de configuraciones de bots y la orquestación de comandos `kubectl` y `helm` para el despliegue de infraestructura.
+*   **Interfaz de Usuario (React + Vite)**: Una SPA (Single Page Application) moderna que abstrae la complejidad técnica del cluster en una experiencia de usuario fluida.
+*   **Agentes Desplegados**: Cada bot publicado consta de dos contenedores principales:
+    *   **Chatbot App**: El motor de ejecución del agente, basado en el framework Hologram.
+    *   **VS Agent**: El middleware de identidad que gestiona las comunicaciones DIDComm cifradas y las carteras (wallets) de credenciales.
+
+### 5.2. Infraestructura Compartida
+
+Para optimizar recursos en el entorno académico de EAFIT, implementamos un modelo de infraestructura compartida:
+- **Shared Postgres**: Una única instancia robusta donde cada bot posee un **Schema propio** para aislamiento de datos.
+- **Shared Redis**: Un cluster para gestión de memoria de corto plazo y búsqueda vectorial.
+- **Shared Ollama**: Servicio de inferencia LLM centralizado accesible vía API compatible con OpenAI.
+
+---
+
+## 6. Flujo de Datos
+
+El ciclo de vida de la información en NextAgent sigue un proceso lineal desde la creación hasta la interacción con el usuario final:
+
+1.  **Captura de Configuración**: El usuario ingresa la "Persona" del bot y sube documentos a través del frontend. Los archivos se almacenan temporalmente y la metadata persiste en SQLite.
+2.  **Preparación de Despliegue**: El backend transforma los datos en archivos YAML estructurados (`agent-pack.yaml` y `values.yaml`).
+3.  **Ejecución en K8s**: El backend invoca a Helm para crear los recursos (Deployments, Services, ConfigMaps) en el cluster.
+4.  **Autenticación de Agente**: Una vez que el bot está activo, el sistema consulta su DID público y solicita una **Credencial Verificable (VC)** a la organización raíz (EAFIT).
+5.  **Interacción DIDComm**: El usuario final escanea el QR generado, estableciendo un canal cifrado entre su app Hologram y el VS Agent desplegado, permitiendo una conversación segura y verificada.
+
+---
+
+## 7. Bases de Datos Utilizadas
+
+### 7.1. SQLite (Capa de Aplicación)
+Se utiliza para la gestión interna de NextAgent:
+- Usuarios y sesiones (JWT).
+- Perfiles de bots creados (Persona, Prompt, Categoría).
+- Registro de estados de despliegue (Pendiente, Publicado, Error).
+
+### 7.2. PostgreSQL (Capa de Persistencia de Agentes)
+Almacena la lógica persistente de los agentes publicados:
+- **Aislamiento**: Cada bot utiliza un usuario y esquema dedicado.
+- **Datos**: Logs de auditoría, historiales de interacciones técnicas y metadatos de configuración persistente del VS Agent.
+
+### 7.3. Redis (Capa de Memoria y RAG)
+Fundamental para la experiencia de IA:
+- **Memoria de Ventana**: Almacena los últimos turnos de conversación para mantener el contexto.
+- **Vector Store**: Indexa los documentos subidos por el usuario (PDF/TXT) permitiendo búsquedas semánticas ultrarrápidas durante la fase de generación (RAG).
+
+---
+
+## 8. APIs, Modelos o Servicios Implementados
+
+*   **API NextAgent (REST)**: Endpoints desarrollados en Express para la gestión de bots, carga de archivos y control de despliegue.
+*   **APIs MCP (Model Context Protocol)**:
+    *   **Servicio de Clima**: Integración con Open-Meteo para datos geográficos y meteorológicos.
+    *   **Servicio de Wikipedia**: Acceso a la base de conocimiento de Wikimedia para resúmenes enciclopédicos.
+*   **Modelos de Lenguaje (LLM)**:
+    *   **GPT-4o-mini**: Modelo principal para procesamiento complejo y razonamiento de herramientas.
+    *   **Llama 3.2 (Ollama)**: Alternativa local para inferencia en el cluster.
+*   **Servicios de Identidad**: Conexión con los servicios de **Verana Foundation** para la resolución de DIDs y validación de confianza.
+
+---
+
+## 9. Explicación de Componentes IA
+
+El "cerebro" de cada agente en NextAgent se compone de tres tecnologías convergentes:
+
+### 9.1. Persona Engine (Prompting)
+Transformamos el lenguaje natural en instrucciones de sistema rigurosas. El prompt define no solo la personalidad del bot, sino también sus límites éticos, su estilo de respuesta y sus prioridades operativas.
+
+### 9.2. Retrieval-Augmented Generation (RAG)
+Permitimos que el agente acceda a conocimiento privado. Cuando un usuario sube un PDF, el sistema lo fragmenta, lo convierte en vectores numéricos (embeddings) y lo almacena. Durante una pregunta, el bot "busca" en estos vectores la información más relevante antes de formular una respuesta.
+
+### 9.3. Agentes de Herramientas (MCP Integration)
+A diferencia de los chatbots estáticos, nuestros agentes son dinámicos. Gracias al protocolo MCP, el LLM tiene la capacidad de "decidir" cuándo necesita usar una herramienta externa (como consultar el clima) para responder con datos reales y actuales, en lugar de alucinar o depender de su conocimiento de entrenamiento.
+
+---
+
+## 10. Resultados Obtenidos
+
+*   **Eficiencia Operativa**: Hemos automatizado un proceso técnico que tomaba horas, permitiendo que cualquier usuario despliegue un agente verificado en **menos de 5 minutos**.
+*   **Garantía de Confianza**: El 100% de los agentes publicados a través de la plataforma obtienen el sello de **"Verificado"** en la aplicación Hologram, respaldado por la infraestructura de EAFIT.
+*   **Flexibilidad Tecnológica**: Implementamos con éxito un sistema que soporta tanto LLMs comerciales (OpenAI) como locales (Ollama), demostrando soberanía tecnológica.
+*   **Democratización**: Se eliminó la barrera de entrada para perfiles no técnicos (como los casos de uso de plomeros, guías o soporte técnico), permitiéndoles poseer su propia identidad digital en la red Verana.
 
 ---
 

@@ -298,6 +298,7 @@ function buildHelmValues(bot, config) {
         { name: 'LOG_LEVEL', value: '3' },
         { name: 'LLM_PROVIDER', value: 'openai' },
         { name: 'OPENAI_MODEL', value: config.openaiModel },
+        ...(config.openaiBaseUrl ? [{ name: 'OPENAI_BASE_URL', value: config.openaiBaseUrl }] : []),
         { name: 'EMBEDDINGS_PROVIDER', value: 'openai' },
         { name: 'EMBEDDINGS_MODEL', value: config.openaiModel },
         { name: 'VECTOR_STORE', value: 'redis' },

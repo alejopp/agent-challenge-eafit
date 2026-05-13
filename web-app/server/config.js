@@ -26,6 +26,7 @@ export const config = {
   enableHelmDeploy: process.env.ENABLE_HELM_DEPLOY === 'true',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  openaiBaseUrl: process.env.OPENAI_BASE_URL || '',
   sharedRedisUrl:
     process.env.SHARED_REDIS_URL || 'redis://redis-master.team-g.svc.cluster.local:6379',
   sharedPostgresHost: process.env.SHARED_POSTGRES_HOST || 'postgres.team-g.svc.cluster.local',

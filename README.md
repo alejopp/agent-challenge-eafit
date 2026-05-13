@@ -115,16 +115,24 @@ When `ENABLE_HELM_DEPLOY=false`, publishing works as a dry-run and still generat
 
 ### Required GitHub secrets
 
-- `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`
-- `OVH_KUBECONFIG`
-- `APP_JWT_SECRET`
-- `SHARED_POSTGRES_PASSWORD`
+| Secret | Description | How to obtain |
+| :--- | :--- | :--- |
+| `APP_JWT_SECRET` | Secret key for signing JSON Web Tokens in the backend. | Generate a random 32+ char string (e.g., `openssl rand -base64 32`). |
+| `DOCKERHUB_USERNAME` | Your Docker Hub account username. | Your personal Docker Hub username. |
+| `DOCKERHUB_TOKEN` | Personal Access Token (PAT) for Docker Hub. | Docker Hub > Settings > Security > New Access Token. |
+| `EXAMPLE_AGENT_OPENAI_API_KEY` | OpenAI API key for LLM and Embeddings. | OpenAI Platform > API Keys. |
+| `EXAMPLE_AGENT_VSAGENT_DB_PASSWORD` | Database password for the example agent. | Choose a secure random password. |
+| `EXAMPLE_AGENT_WALLET_KEY` | Private key for the agent's wallet (SSI/DID). | Provided by the organization administrator. |
+| `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID for Google login. | Google Cloud Console > APIs & Services > Credentials. |
+| `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret for Google login. | Google Cloud Console > APIs & Services > Credentials. |
+| `K8S_NAMESPACE` | Kubernetes namespace for deployment. | Provided by challenge admins (e.g., `team-g`). |
+| `OVH_KUBECONFIG` | Base64 encoded Kubeconfig file. | Encode your kubeconfig with `cat kubeconfig.yaml \| base64`. |
+| `SHARED_POSTGRES_PASSWORD` | Main password for the shared Postgres instance. | Choose a secure random password. |
 
 ### Deployment flow
 
 1. Create a Docker Hub repository such as `your-user/eafit-persona-agent-creator`.
-2. Set `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `OVH_KUBECONFIG`, `K8S_NAMESPACE`, `APP_JWT_SECRET`, and `SHARED_POSTGRES_PASSWORD` in GitHub Actions secrets.
+2. Set all the **Required GitHub secrets** listed in the table above in your repository's GitHub Actions secrets.
 3. Push to `main`.
 4. GitHub Actions will:
    - build the image
