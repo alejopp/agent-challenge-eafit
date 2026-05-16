@@ -627,12 +627,21 @@ export async function publishBot(bot, config) {
     console.warn(`[credential] Warning: Helm deploy succeeded but credential issuance failed: ${credResult.error}`);
   }
 
-  // Final reinforcement: Force a rollout restart of the chatbot to refresh its public page/QR with new VC data
+  // Final reinforcement: Force a rollout restart of both the chatbot and the main VS Agent
   if (config.enableHelmDeploy) {
-    console.log(`[publish] Triggering rollout restart for ${bot.releaseName}-chatbot to refresh public assets...`);
+    console.log(`[publish] Triggering rollout restart for ${bot.releaseName} components to refresh public assets...`);
+    
+    // Restart the Chatbot logic
     spawnSync(
       'kubectl',
       ['rollout', 'restart', 'statefulset', `${bot.releaseName}-chatbot`, '--namespace', config.k8sNamespace],
+      { env: { ...process.env, KUBECONFIG: config.kubeconfigPath }, encoding: 'utf-8' }
+    );
+
+    // Restart the VS Agent core (the one that serves the public profile)
+    spawnSync(
+      'kubectl',
+      ['rollout', 'restart', 'statefulset', `${bot.releaseName}`, '--namespace', config.k8sNamespace],
       { env: { ...process.env, KUBECONFIG: config.kubeconfigPath }, encoding: 'utf-8' }
     );
   }
