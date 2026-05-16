@@ -627,6 +627,16 @@ export async function publishBot(bot, config) {
     console.warn(`[credential] Warning: Helm deploy succeeded but credential issuance failed: ${credResult.error}`);
   }
 
+  // Final reinforcement: Force a rollout restart of the chatbot to refresh its public page/QR with new VC data
+  if (config.enableHelmDeploy) {
+    console.log(`[publish] Triggering rollout restart for ${bot.releaseName}-chatbot to refresh public assets...`);
+    spawnSync(
+      'kubectl',
+      ['rollout', 'restart', 'statefulset', `${bot.releaseName}-chatbot`, '--namespace', config.k8sNamespace],
+      { env: { ...process.env, KUBECONFIG: config.kubeconfigPath }, encoding: 'utf-8' }
+    );
+  }
+
   return {
     success: true,
     notes: result.stdout,
