@@ -68,10 +68,26 @@ export async function issueServiceCredential(bot, config) {
   console.log(`[credential] Agent DID: ${agentDid}`);
 
   // Build claims
-  const logoUrl = bot.personaPhotoPath ? `${config.appUrl}${bot.personaPhotoPath}` : '';
   let logoDataUri = '';
-  if (logoUrl) {
-    console.log(`[credential] Attempting to fetch logo from: ${logoUrl}`);
+  if (bot.personaPhotoPath) {
+    const localPath = path.join(config.storageDir, bot.personaPhotoPath);
+    if (fs.existsSync(localPath)) {
+      try {
+        const buffer = fs.readFileSync(localPath);
+        const ext = path.extname(localPath).toLowerCase();
+        const mime = ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png');
+        logoDataUri = `data:${mime};base64,${buffer.toString('base64')}`;
+        console.log(`[credential] Logo loaded from local filesystem: ${localPath}`);
+      } catch (err) {
+        console.warn(`[credential] Failed to read logo from filesystem: ${err.message}`);
+      }
+    }
+  }
+
+  // Fallback to network fetch if local read failed or was skipped
+  if (!logoDataUri && bot.personaPhotoPath) {
+    const logoUrl = `${config.appUrl}${bot.personaPhotoPath}`;
+    console.log(`[credential] Attempting to fetch logo from URL (fallback): ${logoUrl}`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
     try {
@@ -80,7 +96,7 @@ export async function issueServiceCredential(bot, config) {
         const buffer = await logoRes.arrayBuffer();
         const mime = logoRes.headers.get('content-type') || 'image/png';
         logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
-        console.log('[credential] Logo successfully converted to DataURI');
+        console.log('[credential] Logo successfully converted to DataURI via network');
       }
     } catch (err) {
       console.warn(`[credential] Logo fetch failed or timed out: ${err.message}`);
