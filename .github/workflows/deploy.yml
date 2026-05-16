@@ -44,16 +44,6 @@ jobs:
           fi
           echo "NETWORK=testnet" >> "$GITHUB_ENV"
 
-      - name: Load configuration
-        run: |
-          set -a
-          source config.env
-          set +a
-          while IFS= read -r line; do
-            key="${line%%=*}"
-            echo "${key}=${!key}" >> "$GITHUB_ENV"
-          done < <(grep -E '^[A-Z_]+=' config.env)
-
       - name: Prepare deployment variables
         run: |
           NAMESPACE="${{ secrets.K8S_NAMESPACE }}"
@@ -274,9 +264,9 @@ jobs:
               -o jsonpath='{.data.agent-pack\.yaml}' 2>/dev/null \
               | grep -E '^  description:' | sed 's/.*description: *//' | tr -d '"' | head -1)
 
-            # Fallback to config.env values if not found in ConfigMap
-            AGENT_DISPLAY_NAME="${AGENT_DISPLAY_NAME:-$SERVICE_NAME}"
-            AGENT_DESCRIPTION="${AGENT_DESCRIPTION:-$SERVICE_DESCRIPTION}"
+            # Use metadata found in ConfigMap or empty if not found
+            AGENT_DISPLAY_NAME="${AGENT_DISPLAY_NAME:-$AGENT_NAME}"
+            AGENT_DESCRIPTION="${AGENT_DESCRIPTION:-"Persona AI Agent"}"
             echo "  Name: $AGENT_DISPLAY_NAME"
             echo "  Description: $AGENT_DESCRIPTION"
 
