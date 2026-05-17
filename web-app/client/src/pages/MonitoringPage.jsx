@@ -15,6 +15,12 @@ export function MonitoringPage() {
   const [podResourceData, setPodResourceData] = useState([]);
   const [deploys, setDeploys] = useState([]);
   const [activeAlerts, setActiveAlerts] = useState([]);
+  const [kpis, setKpis] = useState({
+    activeConversations: '-',
+    messagesPerMinute: '-',
+    p95Latency: '-',
+    errorRate: '-'
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -30,6 +36,7 @@ export function MonitoringPage() {
           if (Array.isArray(telemetryData.podResourceData)) setPodResourceData(telemetryData.podResourceData);
           if (Array.isArray(telemetryData.deploys)) setDeploys(telemetryData.deploys);
           if (Array.isArray(telemetryData.alerts)) setActiveAlerts(telemetryData.alerts);
+          if (telemetryData.kpis) setKpis(telemetryData.kpis);
         }
       } catch (error) {
         console.warn('No se pudo conectar al API de telemetría.', error);
@@ -59,19 +66,19 @@ export function MonitoringPage() {
       <section className="stats-grid">
         <article className="stat-card">
           <span>Conversaciones activas</span>
-          <strong>1,248</strong>
+          <strong>{kpis.activeConversations}</strong>
         </article>
         <article className="stat-card">
           <span>Mensajes por minuto</span>
-          <strong>342</strong>
+          <strong>{kpis.messagesPerMinute}</strong>
         </article>
         <article className="stat-card">
           <span>Latencia promedio (p95)</span>
-          <strong>128ms</strong>
+          <strong>{kpis.p95Latency}</strong>
         </article>
         <article className="stat-card accent">
           <span>Tasa de error (%)</span>
-          <strong>0.04%</strong>
+          <strong>{kpis.errorRate}</strong>
         </article>
       </section>
 

@@ -128,6 +128,16 @@ function getPodResources(config) {
   }
 }
 
+function getKPIs() {
+  const lastLatency = tsdbState.history.latencyData[tsdbState.history.latencyData.length - 1];
+  return {
+    activeConversations: Math.floor(Math.random() * 50) + 1200,
+    messagesPerMinute: Math.floor(Math.random() * 20) + 330,
+    p95Latency: `${lastLatency ? lastLatency.p95 : 128}ms`,
+    errorRate: '0.04%'
+  };
+}
+
 export function getDashboardMetrics(config) {
   updateSimulatedMetrics();
   
@@ -137,6 +147,7 @@ export function getDashboardMetrics(config) {
     redisData: tsdbState.history.redisData,
     deploys: getDeploys(config),
     alerts: getAlerts(config),
-    podResourceData: getPodResources(config)
+    podResourceData: getPodResources(config),
+    kpis: getKPIs()
   };
 }
