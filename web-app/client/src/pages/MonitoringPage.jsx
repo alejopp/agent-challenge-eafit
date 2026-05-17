@@ -44,6 +44,11 @@ export function MonitoringPage() {
     };
 
     loadAgentStatistics();
+    
+    // Configurar polling cada 30 segundos para reducir la carga de red
+    const intervalId = setInterval(loadAgentStatistics, 30000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   if (!mounted) return null;

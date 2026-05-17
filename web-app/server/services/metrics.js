@@ -130,11 +130,14 @@ function getPodResources(config) {
 
 function getKPIs() {
   const lastLatency = tsdbState.history.latencyData[tsdbState.history.latencyData.length - 1];
+  const errorBase = 0.04;
+  const currentError = (errorBase + (Math.random() * 0.02 - 0.01)).toFixed(2);
+  
   return {
     activeConversations: Math.floor(Math.random() * 50) + 1200,
     messagesPerMinute: Math.floor(Math.random() * 20) + 330,
     p95Latency: `${lastLatency ? lastLatency.p95 : 128}ms`,
-    errorRate: '0.04%'
+    errorRate: `${currentError}%`
   };
 }
 
