@@ -345,7 +345,7 @@ function buildHelmValues(bot, config) {
       }
     },
     stats: {
-      enabled: false
+      enabled: true
     },
     'vs-agent-chart': {
       enabled: true,
