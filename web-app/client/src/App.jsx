@@ -4,6 +4,7 @@ import { AppShell } from './components/AppShell';
 import { api } from './lib/api';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { MonitoringPage } from './pages/MonitoringPage';
 import { NewBotPage } from './pages/NewBotPage';
 import { BotDetailPage } from './pages/BotDetailPage';
 import { BotEditPage } from './pages/BotEditPage';
@@ -146,6 +147,7 @@ export default function App() {
     <AppShell user={session} onLogout={handleLogout}>
       <Routes>
         <Route path="/" element={<DashboardPage bots={bots} stats={stats} meta={meta} />} />
+        <Route path="/monitoring" element={<MonitoringPage />} />
         <Route path="/bots/new" element={<NewBotPage mcpServices={mcpServices} onCreate={createBot} />} />
         <Route
           path="/bots/:botId"
