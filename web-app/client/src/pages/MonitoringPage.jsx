@@ -4,72 +4,35 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
-// TODO: reemplazar con llamada a Prometheus API
-const generateTimeSeries = (points, keys, baseValues, volatility) => {
-  const data = [];
-  const currentValues = [...baseValues];
-  const now = Date.now();
-  
-  for (let i = 0; i < points; i++) {
-    const time = new Date(now - (points - i) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const point = { time };
-    
-    keys.forEach((key, index) => {
-      currentValues[index] = Math.max(0, currentValues[index] + (Math.random() - 0.45) * volatility);
-      point[key] = Math.round(currentValues[index]);
-    });
-    data.push(point);
-  }
-  return data;
-};
-
-// Mock data generation
-const initialMessagesData = generateTimeSeries(30, ['botA', 'botB', 'botC'], [120, 80, 200], 15);
-const latencyData = generateTimeSeries(30, ['p50', 'p95', 'p99'], [45, 120, 250], 10);
-const pgData = generateTimeSeries(30, ['qps', 'connections', 'slowQueries'], [500, 50, 2], 20);
-const redisData = generateTimeSeries(30, ['hitRate', 'missRate'], [85, 15], 5);
-
-const podResourceData = [
-  { pod: 'api-pod-1', cpu: 45, memory: 512 },
-  { pod: 'api-pod-2', cpu: 60, memory: 620 },
-  { pod: 'worker-1', cpu: 85, memory: 1024 },
-  { pod: 'worker-2', cpu: 20, memory: 256 },
-];
-
-const deploys = [
-  { id: 'dep-482', service: 'bot-wizard', status: 'success', time: 'hace 5 min' },
-  { id: 'dep-481', service: 'core-api', status: 'running', time: 'hace 12 min' },
-  { id: 'dep-480', service: 'auth-service', status: 'failed', time: 'hace 1 hora' },
-  { id: 'dep-479', service: 'frontend', status: 'success', time: 'hace 3 horas' },
-];
-
-const activeAlerts = [
-  { id: 1, level: 'critical', message: 'Uso de CPU > 80% en worker-1', component: 'Kubernetes', time: 'hace 2 min' },
-  { id: 2, level: 'warning', message: 'Latencia p99 superior a 300ms', component: 'API Gateway', time: 'hace 15 min' }
-];
+import { api } from '../lib/api';
 
 export function MonitoringPage() {
   const [mounted, setMounted] = useState(false);
-  const [messagesData, setMessagesData] = useState(initialMessagesData);
+  const [messagesData, setMessagesData] = useState([]);
+  const [latencyData, setLatencyData] = useState([]);
+  const [pgData, setPgData] = useState([]);
+  const [redisData, setRedisData] = useState([]);
+  const [podResourceData, setPodResourceData] = useState([]);
+  const [deploys, setDeploys] = useState([]);
+  const [activeAlerts, setActiveAlerts] = useState([]);
 
   useEffect(() => {
     setMounted(true);
 
-    // TODO: reemplazar localhost con la URL real de ingress del servicio de stats
     const loadAgentStatistics = async () => {
       try {
-        const response = await fetch('http://localhost:8700/stats/view', {
-          headers: { 'Accept': 'application/json' }
-        });
-        if (response.ok) {
-          const telemetryData = await response.json();
-          // Se asume que el API devuelve un array compatible o se formatea aquí
-          if (Array.isArray(telemetryData) && telemetryData.length > 0) {
-            setMessagesData(telemetryData);
-          }
+        const telemetryData = await api.getStats();
+        if (telemetryData) {
+          if (Array.isArray(telemetryData.messagesData)) setMessagesData(telemetryData.messagesData);
+          if (Array.isArray(telemetryData.latencyData)) setLatencyData(telemetryData.latencyData);
+          if (Array.isArray(telemetryData.pgData)) setPgData(telemetryData.pgData);
+          if (Array.isArray(telemetryData.redisData)) setRedisData(telemetryData.redisData);
+          if (Array.isArray(telemetryData.podResourceData)) setPodResourceData(telemetryData.podResourceData);
+          if (Array.isArray(telemetryData.deploys)) setDeploys(telemetryData.deploys);
+          if (Array.isArray(telemetryData.alerts)) setActiveAlerts(telemetryData.alerts);
         }
       } catch (error) {
-        console.warn('No se pudo conectar al API de telemetría. Usando datos simulados.', error);
+        console.warn('No se pudo conectar al API de telemetría.', error);
       }
     };
 

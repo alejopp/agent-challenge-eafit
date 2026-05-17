@@ -43,6 +43,7 @@ export const api = {
     }),
   getMeta: () => request('/api/meta/config'),
   getMcpServices: () => request('/api/meta/mcp-services'),
+  getStats: () => request('/api/stats'),
   getBots: () => request('/api/bots'),
   getBot: (botId) => request(`/api/bots/${botId}`),
   createBot: (formData) =>

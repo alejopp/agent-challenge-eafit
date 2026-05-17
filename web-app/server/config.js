@@ -48,6 +48,7 @@ export const config = {
     process.env.MCP_INTERNAL_BASE_URL ||
     `http://persona-ai-creator.${process.env.K8S_NAMESPACE || 'team-g'}.svc.cluster.local`,
   llmProvider: process.env.LLM_PROVIDER || 'openai',
+  statisticsApiUrl: process.env.STATISTICS_API_URL || 'http://stats-service.team-g.svc.cluster.local:8700/stats/view',
   // OAuth Configuration
   baseUrl: process.env.APP_URL || 'http://localhost:4000',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',

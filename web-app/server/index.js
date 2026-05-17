@@ -54,6 +54,7 @@ import { authRouter } from './routes/auth.js';
 import { botsRouter } from './routes/bots.js';
 import { metaRouter } from './routes/meta.js';
 import { mcpRouter } from './routes/mcp.js';
+import { statsRouter } from './routes/stats.js';
 import { setupOAuth, getOAuthRouter } from './oauth.js';
 
 const app = express();
@@ -101,6 +102,7 @@ app.get('/api/auth/oauth/test', (_req, res) => {
 });
 app.use('/api/meta', metaRouter(config));
 app.use('/api/mcp', mcpRouter());
+app.use('/api/stats', statsRouter(config));
 app.use('/api/bots', requireAuth, botsRouter(config));
 
 const clientBuildDir = path.join(config.rootDir, 'dist/client');
