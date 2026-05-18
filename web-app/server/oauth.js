@@ -2,7 +2,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
-import { createUser, getUserByEmail, normalizeUser, getUserById } from './db.js';
+import { createUser, getUserByEmail, normalizeUser, getUserById, saveUserCalendarToken, getUserCalendarToken, clearUserCalendarToken, saveUserGmailToken, getUserGmailToken, clearUserGmailToken } from './db.js';
 import { signAuthToken } from './auth.js';
 import crypto from 'node:crypto';
 
@@ -104,6 +104,13 @@ export function setupOAuth(config) {
 export function getOAuthRouter(passport, config) {
   const router = new Router();
 
+  const cookieOptions = () => ({
+    httpOnly: true,
+    sameSite: config.baseUrl.startsWith('https') ? 'lax' : 'lax',
+    secure: config.baseUrl.startsWith('https'),
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+
   // Google routes
   if (config.googleClientId) {
     router.get('/google', (req, res, next) => {
@@ -132,6 +139,150 @@ export function getOAuthRouter(passport, config) {
     res.redirect(config.clientDevUrl); 
   }
     );
+  }
+
+  // Google Calendar connect/callback/status/disconnect routes
+  if (config.googleClientId) {
+    router.get('/google-calendar', (req, res) => {
+      if (!req.user) return res.redirect(`${config.clientDevUrl}?error=not_authenticated`);
+      const returnTo = req.query.returnTo || config.clientDevUrl;
+      const state = Buffer.from(JSON.stringify({ userId: req.user.id, returnTo, ts: Date.now() })).toString('base64');
+      const params = new URLSearchParams({
+        client_id: config.googleClientId,
+        redirect_uri: `${config.baseUrl}/api/auth/oauth/google-calendar/callback`,
+        response_type: 'code',
+        scope: 'https://www.googleapis.com/auth/calendar',
+        access_type: 'offline',
+        prompt: 'consent',
+        state
+      });
+      res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+    });
+
+    router.get('/google-calendar/callback', async (req, res) => {
+      const { code, state, error } = req.query;
+      if (error || !code || !state) {
+        console.error('[OAuth] Google Calendar callback error:', error);
+        return res.redirect(`${config.clientDevUrl}?error=calendar_auth_failed`);
+      }
+      let userId;
+      try {
+        const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+        userId = decoded.userId;
+      } catch {
+        return res.redirect(`${config.clientDevUrl}?error=calendar_auth_failed`);
+      }
+      if (!userId) return res.redirect(`${config.clientDevUrl}?error=calendar_auth_failed`);
+      try {
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            code,
+            client_id: config.googleClientId,
+            client_secret: config.googleClientSecret,
+            redirect_uri: `${config.baseUrl}/api/auth/oauth/google-calendar/callback`,
+            grant_type: 'authorization_code'
+          }).toString()
+        });
+        const tokenData = await tokenRes.json();
+        if (tokenData.error) throw new Error(tokenData.error_description || tokenData.error);
+        const expiresAt = tokenData.expires_in
+          ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+          : null;
+        saveUserCalendarToken(userId, tokenData.access_token, tokenData.refresh_token || null, expiresAt);
+        console.log('[OAuth] Google Calendar token saved for user:', userId);
+        let decoded2 = {};
+        try { decoded2 = JSON.parse(Buffer.from(state, 'base64').toString('utf-8')); } catch { /* ignore */ }
+        const redirectTarget = decoded2.returnTo || config.clientDevUrl;
+        const separator = redirectTarget.includes('?') ? '&' : '?';
+        res.redirect(`${redirectTarget}${separator}calendar_connected=true`);
+      } catch (err) {
+        console.error('[OAuth] Google Calendar token exchange error:', err);
+        res.redirect(`${config.clientDevUrl}?error=calendar_auth_failed`);
+      }
+    });
+
+    router.get('/google-calendar/status', (req, res) => {
+      if (!req.user) return res.status(401).json({ connected: false });
+      const token = getUserCalendarToken(req.user.id);
+      res.json({ connected: !!token });
+    });
+
+    router.post('/google-calendar/disconnect', (req, res) => {
+      if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+      clearUserCalendarToken(req.user.id);
+      res.json({ success: true });
+    });
+  }
+
+  // Google Gmail connect/callback/status/disconnect routes
+  if (config.googleClientId) {
+    router.get('/google-gmail', (req, res) => {
+      if (!req.user) return res.redirect(`${config.clientDevUrl}?error=not_authenticated`);
+      const returnTo = req.query.returnTo || config.clientDevUrl;
+      const state = Buffer.from(JSON.stringify({ userId: req.user.id, returnTo, ts: Date.now() })).toString('base64');
+      const params = new URLSearchParams({
+        client_id: config.googleClientId,
+        redirect_uri: `${config.baseUrl}/api/auth/oauth/google-gmail/callback`,
+        response_type: 'code',
+        scope: 'https://www.googleapis.com/auth/gmail.modify',
+        access_type: 'offline',
+        prompt: 'consent',
+        state
+      });
+      res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+    });
+
+    router.get('/google-gmail/callback', async (req, res) => {
+      const { code, state, error } = req.query;
+      if (error || !code || !state) {
+        console.error('[OAuth] Gmail callback error:', error);
+        return res.redirect(`${config.clientDevUrl}?error=gmail_auth_failed`);
+      }
+      let decoded = {};
+      try { decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8')); } catch { /* ignore */ }
+      const userId = decoded.userId;
+      if (!userId) return res.redirect(`${config.clientDevUrl}?error=gmail_auth_failed`);
+      try {
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            code,
+            client_id: config.googleClientId,
+            client_secret: config.googleClientSecret,
+            redirect_uri: `${config.baseUrl}/api/auth/oauth/google-gmail/callback`,
+            grant_type: 'authorization_code'
+          }).toString()
+        });
+        const tokenData = await tokenRes.json();
+        if (tokenData.error) throw new Error(tokenData.error_description || tokenData.error);
+        const expiresAt = tokenData.expires_in
+          ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+          : null;
+        saveUserGmailToken(userId, tokenData.access_token, tokenData.refresh_token || null, expiresAt);
+        console.log('[OAuth] Gmail token saved for user:', userId);
+        const redirectTarget = decoded.returnTo || config.clientDevUrl;
+        const separator = redirectTarget.includes('?') ? '&' : '?';
+        res.redirect(`${redirectTarget}${separator}gmail_connected=true`);
+      } catch (err) {
+        console.error('[OAuth] Gmail token exchange error:', err);
+        res.redirect(`${config.clientDevUrl}?error=gmail_auth_failed`);
+      }
+    });
+
+    router.get('/google-gmail/status', (req, res) => {
+      if (!req.user) return res.status(401).json({ connected: false });
+      const token = getUserGmailToken(req.user.id);
+      res.json({ connected: !!token });
+    });
+
+    router.post('/google-gmail/disconnect', (req, res) => {
+      if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+      clearUserGmailToken(req.user.id);
+      res.json({ success: true });
+    });
   }
 
   // GitHub routes
@@ -212,11 +363,3 @@ export function getOAuthRouter(passport, config) {
   return router;
 }
 
-function cookieOptions() {
-  return {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: false,
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  };
-}

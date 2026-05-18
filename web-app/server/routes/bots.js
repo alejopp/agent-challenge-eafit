@@ -35,8 +35,9 @@ function createUploader(config) {
 
 function parseBotPayload(body, files, existingBot) {
   const mcpServices = JSON.parse(body.mcpServices || '[]');
+  const ragFilesToDelete = JSON.parse(body.ragFilesToDelete || '[]');
   const ragFiles = [
-    ...(existingBot?.ragFiles || []),
+    ...(existingBot?.ragFiles || []).filter((f) => !ragFilesToDelete.includes(f.path)),
     ...((files?.ragFiles || []).map((file) => ({
       originalName: file.originalname,
       path: `/uploads/${file.filename}`,
@@ -73,7 +74,7 @@ export function botsRouter(config) {
         totalBots: bots.length,
         publishedBots: bots.filter((bot) => bot.status === 'published').length,
         draftBots: bots.filter((bot) => bot.status !== 'published').length,
-        mcpServices: MCP_SERVICES.filter((service) => !service.comingSoon).length
+        mcpServices: new Set(bots.flatMap((bot) => bot.mcpServices || [])).size
       }
     });
   });
@@ -123,6 +124,16 @@ export function botsRouter(config) {
       if (!existingBot) {
         return res.status(404).json({ error: 'Bot not found.' });
       }
+
+      const ragFilesToDelete = JSON.parse(req.body.ragFilesToDelete || '[]');
+      const uploadsDir = path.join(config.storageDir, 'uploads');
+      ragFilesToDelete.forEach((filePath) => {
+        try {
+          fs.unlinkSync(path.join(uploadsDir, path.basename(filePath)));
+        } catch (e) {
+          console.warn('[RAG] Could not delete file:', e.message);
+        }
+      });
 
       const payload = parseBotPayload(req.body, req.files, existingBot);
       const prepared = prepareBotForPersistence(payload, config, existingBot);

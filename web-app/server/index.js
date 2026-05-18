@@ -100,7 +100,7 @@ app.get('/api/auth/oauth/test', (_req, res) => {
   res.json({ status: 'OAuth router is working' });
 });
 app.use('/api/meta', metaRouter(config));
-app.use('/api/mcp', mcpRouter());
+app.use('/api/mcp', mcpRouter(config));
 app.use('/api/bots', requireAuth, botsRouter(config));
 
 const clientBuildDir = path.join(config.rootDir, 'dist/client');

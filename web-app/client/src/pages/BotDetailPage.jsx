@@ -4,6 +4,22 @@ import { BotForm } from '../components/BotForm';
 import { PublishingOverlay } from '../components/PublishingOverlay';
 import { api } from '../lib/api.js';
 
+const MCP_ICONS = {
+  'weather': '🌤️',
+  'wikipedia': '📖',
+  'google-calendar': '📅',
+  'google-gmail': '✉️'
+};
+
+const MCP_NAMES = {
+  'weather': 'Weather',
+  'wikipedia': 'Wikipedia',
+  'google-calendar': 'Google Calendar',
+  'google-gmail': 'Gmail'
+};
+
+const formatMcp = (id) => MCP_NAMES[id] || id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onUnpublish }) {
   const navigate = useNavigate();
   const [bot, setBot] = useState(null);
@@ -99,13 +115,24 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
   return (
     <div className="bot-summary-page">
       <div className="bot-summary-header">
+        <div className="bot-summary-avatar">
+          {bot.personaPhotoPath ? (
+            <img src={bot.personaPhotoPath} alt={bot.personaName} className="bot-summary-photo" />
+          ) : (
+            <div className="bot-summary-avatar-placeholder">
+              {bot.personaName?.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+        </div>
+
         <div className="bot-summary-title">
-          <span className={`status-pill ${bot.status}`}>
-            {bot.status === 'published' ? 'publicado' : bot.status === 'draft' ? 'borrador' : bot.status}
-          </span>
           <h1>{bot.personaName}</h1>
           <p className="bot-summary-profession">{bot.profession}</p>
+          <span className={`status-pill ${bot.status}`}>
+            {bot.status === 'published' ? 'publicado' : 'borrador'}
+          </span>
         </div>
+
         {bot.publicUrl && bot.status === 'published' && (
           <div className="bot-summary-qr">
             <img
@@ -116,16 +143,6 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
             <span className="bot-summary-qr-label">Escanear para conectar</span>
           </div>
         )}
-
-        <div className="bot-summary-avatar">
-          {bot.personaPhotoPath ? (
-            <img src={bot.personaPhotoPath} alt={bot.personaName} className="bot-summary-photo" />
-          ) : (
-            <div className="bot-summary-avatar-placeholder">
-              {bot.personaName?.slice(0, 2).toUpperCase()}
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="bot-summary-grid">
@@ -161,22 +178,25 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           </div>
         </div>
 
-        <div className="bot-summary-card">
+        <div className="bot-summary-card span-full">
           <h3>Instrucciones (System Prompt)</h3>
           <pre className="bot-summary-prompt">{bot.prompt}</pre>
         </div>
 
-        <div className="bot-summary-card">
+        <div className="bot-summary-card span-full">
           <h3>Servicios MCP</h3>
-          <div className="rag-list">
+          <div className="mcp-chip-list">
             {bot.mcpServices.map((service) => (
-              <div key={service} className="rag-chip">{service}</div>
+              <div key={service} className="mcp-service-chip">
+                <span className="mcp-service-chip-icon">{MCP_ICONS[service] || '⚙️'}</span>
+                <span>{formatMcp(service)}</span>
+              </div>
             ))}
           </div>
         </div>
 
         {bot.ragFiles?.length > 0 && (
-          <div className="bot-summary-card">
+          <div className="bot-summary-card span-full">
             <h3>Documentos RAG</h3>
             <div className="rag-list">
               {bot.ragFiles.map((file) => (
@@ -186,16 +206,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           </div>
         )}
 
-        {bot.publicUrl && (
-          <div className="bot-summary-card">
-            <h3>URL Pública</h3>
-            <a href={bot.publicUrl} target="_blank" rel="noreferrer" className="text-link">
-              {bot.publicUrl}
-            </a>
-          </div>
-        )}
-
-        <div className="bot-summary-card deployment-card">
+        <div className="bot-summary-card span-full deployment-card">
           <h3>Despliegue</h3>
           {bot.deploymentNotes && (
             <p className="deployment-notes">{bot.deploymentNotes}</p>

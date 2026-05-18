@@ -177,13 +177,16 @@ function buildMcpServers(bot, config) {
     });
   }
 
+  const baseUrl = (config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '');
   const internalServices = selectedServices.filter(s => s !== 'wikipedia');
   return [
     ...servers,
     ...internalServices.map((serviceId) => ({
       name: serviceId,
       transport: 'streamable-http',
-      url: `${(config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '')}/api/mcp/${serviceId}`
+      url: (serviceId === 'google-calendar' || serviceId === 'google-gmail') && bot.userId
+        ? `${baseUrl}/api/mcp/${serviceId}?userId=${encodeURIComponent(bot.userId)}`
+        : `${baseUrl}/api/mcp/${serviceId}`
     }))
   ];
 }

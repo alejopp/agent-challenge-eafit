@@ -7,7 +7,6 @@ export function BotEditPage({ botId, mcpServices, loadBot, onSave, onPublish, on
   const [bot, setBot] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
   useEffect(() => {
     loadBot(botId)
       .then(setBot)
@@ -70,37 +69,59 @@ export function BotEditPage({ botId, mcpServices, loadBot, onSave, onPublish, on
 
       <aside className="detail-sidebar">
         <div className="detail-card">
-          <span className={`status-pill ${bot.status}`}>{bot.status}</span>
-          <h2>{bot.personaName}</h2>
-          <p>{bot.serviceDescription}</p>
-          <a href={bot.publicUrl} target="_blank" rel="noreferrer" className="text-link">
-            Open public URL
-          </a>
+          <div className="sidebar-profile-header">
+            {bot.personaPhotoPath ? (
+              <img src={bot.personaPhotoPath} alt={bot.personaName} className="sidebar-avatar" />
+            ) : (
+              <div className="sidebar-avatar-placeholder">
+                {bot.personaName?.charAt(0)?.toUpperCase() ?? '?'}
+              </div>
+            )}
+            <div className="sidebar-profile-info">
+              <span className={`status-pill ${bot.status}`}>
+                {bot.status === 'published' ? 'publicado' : 'borrador'}
+              </span>
+              <h2>{bot.personaName}</h2>
+            </div>
+          </div>
+          {bot.serviceDescription && (
+            <p className="sidebar-profile-desc">{bot.serviceDescription}</p>
+          )}
+          {bot.publicUrl && bot.status === 'published' && (
+            <a href={bot.publicUrl} target="_blank" rel="noreferrer" className="text-link">
+              Ver URL pública →
+            </a>
+          )}
         </div>
 
         <div className="detail-card">
-          <h3>Deployment</h3>
-          <p>{bot.deploymentNotes || 'This bot has not been published yet.'}</p>
+          <h3>Despliegue</h3>
+          <p>{bot.deploymentNotes || 'Este bot aún no ha sido publicado.'}</p>
           <div className="stacked-actions">
             <button className="deploy-button" onClick={handlePublish} disabled={busy}>
-              Publish to Kubernetes
+              Publicar en Kubernetes
             </button>
             <button className="deploy-button" onClick={handleUnpublish} disabled={busy}>
-              Unpublish
+              Despublicar
             </button>
           </div>
         </div>
 
-        <div className="detail-card">
-          <h3>MCP services</h3>
-          <div className="rag-list">
-            {bot.mcpServices.map((service) => (
-              <div key={service} className="rag-chip">
-                {service}
-              </div>
-            ))}
+        {bot.mcpServices?.length > 0 && (
+          <div className="detail-card">
+            <h3>Servicios MCP</h3>
+            <div className="rag-list">
+              {bot.mcpServices.map((serviceId) => {
+                const svc = mcpServices?.find((s) => s.id === serviceId);
+                return (
+                  <div key={serviceId} className="rag-chip">
+                    {svc?.name || serviceId}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </div>
   );
