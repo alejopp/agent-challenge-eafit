@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../lib/api';
 
 const categories = ['Servicios Profesionales', 'Salud', 'Educación', 'Creativo', 'Servicios del Hogar'];
+
+const SERVICE_ICONS = {
+  'weather': '🌤️',
+  'wikipedia': '📖',
+  'google-calendar': '📅',
+  'google-gmail': '✉️'
+};
 
 const steps = [
   { id: 'persona', label: 'Persona', number: 1 },
@@ -28,7 +36,12 @@ export function buildBotFormData(formState) {
       return;
     }
 
-    if (!['personaPhotoPreview', 'personaPhotoFile'].includes(key) && key !== 'ragFileList') {
+    if (key === 'ragFilesToDelete') {
+      formData.append(key, JSON.stringify(value));
+      return;
+    }
+
+    if (!['personaPhotoPreview', 'personaPhotoFile'].includes(key) && key !== 'ragFileList' && key !== 'ragFilesToDelete') {
       formData.append(key, value ?? '');
     }
   });
@@ -48,10 +61,64 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
     status: initialValue?.status || 'draft',
     personaPhotoPreview: initialValue?.personaPhotoPath || '',
     personaPhotoFile: null,
-    ragFileList: []
+    ragFileList: [],
+    ragFilesToDelete: []
   }));
 
   const selectedCount = useMemo(() => formState.mcpServices.length, [formState.mcpServices]);
+  const [calendarConnected, setCalendarConnected] = useState(null);
+  const [calendarMsg, setCalendarMsg] = useState('');
+  const [gmailConnected, setGmailConnected] = useState(null);
+  const [gmailMsg, setGmailMsg] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('calendar_connected') === 'true') {
+      setCalendarConnected(true);
+      setCalendarMsg('¡Google Calendar conectado correctamente!');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    if (params.get('error') === 'calendar_auth_failed') {
+      setCalendarMsg('Error al conectar Google Calendar. Intenta de nuevo.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    if (params.get('gmail_connected') === 'true') {
+      setGmailConnected(true);
+      setGmailMsg('¡Gmail conectado correctamente!');
+      setCurrentStep(3);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    if (params.get('error') === 'gmail_auth_failed') {
+      setGmailMsg('Error al conectar Gmail. Intenta de nuevo.');
+      setCurrentStep(3);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    if (params.get('calendar_connected') === 'true' || params.get('error') === 'calendar_auth_failed') {
+      setCurrentStep(3);
+    }
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (formState.mcpServices.includes('google-calendar')) {
+      api.getCalendarStatus()
+        .then((data) => setCalendarConnected(data.connected))
+        .catch(() => setCalendarConnected(false));
+    } else {
+      setCalendarConnected(null);
+      setCalendarMsg('');
+    }
+  }, [formState.mcpServices]);
+
+  useEffect(() => {
+    if (formState.mcpServices.includes('google-gmail')) {
+      api.getGmailStatus()
+        .then((data) => setGmailConnected(data.connected))
+        .catch(() => setGmailConnected(false));
+    } else {
+      setGmailConnected(null);
+      setGmailMsg('');
+    }
+  }, [formState.mcpServices]);
 
   const toggleService = (serviceId) => {
     setFormState((current) => ({
@@ -176,12 +243,16 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
             </label>
 
             <div className="photo-upload-row">
-              {formState.personaPhotoPreview && (
+              {formState.personaPhotoPreview ? (
                 <img
                   src={formState.personaPhotoPreview}
                   alt="Vista previa"
                   className="persona-photo-preview"
                 />
+              ) : (
+                <div className="persona-photo-placeholder">
+                  {formState.personaName?.charAt(0)?.toUpperCase() || '?'}
+                </div>
               )}
               <label className="file-field" style={{ flex: 1 }}>
                 <span>Foto de la persona</span>
@@ -273,7 +344,21 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
             </label>
           </section>
         );
-      case 3:
+      case 3: {
+        const authConfig = {
+          'google-calendar': {
+            connected: calendarConnected,
+            msg: calendarMsg,
+            oauthPath: '/api/auth/oauth/google-calendar',
+            onDisconnect: async () => { await api.disconnectCalendar(); setCalendarConnected(false); setCalendarMsg(''); }
+          },
+          'google-gmail': {
+            connected: gmailConnected,
+            msg: gmailMsg,
+            oauthPath: '/api/auth/oauth/google-gmail',
+            onDisconnect: async () => { await api.disconnectGmail(); setGmailConnected(false); setGmailMsg(''); }
+          }
+        };
         return (
           <section className="form-section">
             <div className="section-title">
@@ -282,25 +367,63 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
             </div>
 
             <div className="mcp-grid">
-              {mcpServices.map((service) => (
-                <button
-                  type="button"
-                  key={service.id}
-                  className={`mcp-card ${formState.mcpServices.includes(service.id) ? 'selected' : ''} ${service.comingSoon ? 'disabled' : ''
-                    }`}
-                  onClick={() => !service.comingSoon && toggleService(service.id)}
-                >
-                  <div>
-                    <strong>{service.name}</strong>
-                    <span>{service.category}</span>
+              {mcpServices.map((service) => {
+                const selected = formState.mcpServices.includes(service.id);
+                const auth = authConfig[service.id];
+                const returnUrl = `${window.location.pathname}${window.location.search}`;
+                return (
+                  <div
+                    key={service.id}
+                    className={`mcp-card ${selected ? 'selected' : ''} ${service.comingSoon ? 'disabled' : ''}`}
+                    onClick={() => !service.comingSoon && toggleService(service.id)}
+                    role={service.comingSoon ? undefined : 'button'}
+                    tabIndex={service.comingSoon ? undefined : 0}
+                    onKeyDown={(e) => e.key === 'Enter' && !service.comingSoon && toggleService(service.id)}
+                  >
+                    {selected && !service.comingSoon && <span className="mcp-check-badge">✓</span>}
+                    <div className="mcp-card-top">
+                      <span className="mcp-card-icon">{SERVICE_ICONS[service.id] || '⚙️'}</span>
+                      <div className="mcp-card-meta">
+                        <strong className="mcp-card-name">{service.name}</strong>
+                        <span className="mcp-card-category">{service.category}</span>
+                      </div>
+                    </div>
+                    <p className="mcp-card-desc">{service.description}</p>
+                    <div className="mcp-card-tools">
+                      {service.comingSoon ? 'Próximamente' : service.tools.join(' · ')}
+                    </div>
+
+                    {auth && selected && (
+                      <div className="mcp-auth-section" onClick={(e) => e.stopPropagation()}>
+                        {auth.connected === null ? (
+                          <span className="mcp-auth-checking">Verificando conexión...</span>
+                        ) : auth.connected ? (
+                          <div className="mcp-auth-row">
+                            <span className="mcp-auth-ok">✓ Cuenta conectada</span>
+                            <button type="button" className="mcp-auth-btn-disconnect" onClick={auth.onDisconnect}>
+                              Desconectar
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            {auth.msg && <span className="mcp-auth-msg error">{auth.msg}</span>}
+                            <a
+                              href={`${auth.oauthPath}?returnTo=${encodeURIComponent(window.location.href)}`}
+                              className="mcp-auth-btn-connect"
+                            >
+                              Autorizar con Google →
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <p>{service.description}</p>
-                  <small>{service.comingSoon ? 'Próximamente' : service.tools.join(' · ')}</small>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </section>
         );
+      }
       case 4:
         return (
           <section className="form-section">
@@ -320,21 +443,49 @@ export function BotForm({ initialValue, mcpServices, onSubmit, submitting, onCom
               />
             </label>
 
-            {formState.ragFileList.length > 0 && (
+            {initialValue?.ragFiles?.filter((f) => !formState.ragFilesToDelete.includes(f.path)).length > 0 && (
               <div className="rag-list">
-                {formState.ragFileList.map((file) => (
-                  <div key={file.name} className="rag-chip">
-                    {file.name}
-                  </div>
-                ))}
+                {initialValue.ragFiles
+                  .filter((f) => !formState.ragFilesToDelete.includes(f.path))
+                  .map((file) => (
+                    <div key={file.path} className="rag-chip rag-chip-deletable">
+                      <span className="rag-chip-name">{file.originalName}</span>
+                      <button
+                        type="button"
+                        className="rag-chip-delete"
+                        title="Eliminar documento"
+                        onClick={() =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            ragFilesToDelete: [...prev.ragFilesToDelete, file.path]
+                          }))
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
               </div>
             )}
 
-            {initialValue?.ragFiles?.length > 0 && (
+            {formState.ragFileList.length > 0 && (
               <div className="rag-list">
-                {initialValue.ragFiles.map((file) => (
-                  <div key={file.path} className="rag-chip">
-                    {file.originalName}
+                {formState.ragFileList.map((file, index) => (
+                  <div key={`${file.name}-${index}`} className="rag-chip rag-chip-deletable">
+                    <span className="rag-chip-name">{file.name}</span>
+                    <button
+                      type="button"
+                      className="rag-chip-delete new"
+                      title="Quitar archivo"
+                      onClick={() =>
+                        setFormState((prev) => ({
+                          ...prev,
+                          ragFileList: prev.ragFileList.filter((_, i) => i !== index)
+                        }))
+                      }
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>

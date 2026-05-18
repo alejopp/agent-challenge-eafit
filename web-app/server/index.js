@@ -101,8 +101,12 @@ app.get('/api/auth/oauth/test', (_req, res) => {
   res.json({ status: 'OAuth router is working' });
 });
 app.use('/api/meta', metaRouter(config));
+<<<<<<< HEAD
 app.use('/api/mcp', mcpRouter());
 app.use('/api/stats', statsRouter(config));
+=======
+app.use('/api/mcp', mcpRouter(config));
+>>>>>>> b8a41be (diseño UI, MCP Calendar y Gmail, funcionalidad eliminar archivos RAG)
 app.use('/api/bots', requireAuth, botsRouter(config));
 
 const clientBuildDir = path.join(config.rootDir, 'dist/client');

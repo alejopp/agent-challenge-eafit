@@ -3,11 +3,11 @@ import crypto from 'node:crypto';
 import { createUser, verifyUserCredentials } from '../db.js';
 import { signAuthToken } from '../auth.js';
 
-function cookieOptions() {
+function cookieOptions(config) {
   return {
     httpOnly: true,
     sameSite: 'lax',
-    secure: false,
+    secure: config.appUrl.startsWith('https'),
     maxAge: 7 * 24 * 60 * 60 * 1000
   };
 }
@@ -33,7 +33,7 @@ export function authRouter(config) {
         password
       });
       const token = signAuthToken(user, config.jwtSecret);
-      res.cookie('persona_ai_session', token, cookieOptions());
+      res.cookie('persona_ai_session', token, cookieOptions(config));
       return res.status(201).json({ user });
     } catch (error) {
       return res.status(409).json({ error: 'Email is already registered.' });
@@ -49,7 +49,7 @@ export function authRouter(config) {
     }
 
     const token = signAuthToken(user, config.jwtSecret);
-    res.cookie('persona_ai_session', token, cookieOptions());
+    res.cookie('persona_ai_session', token, cookieOptions(config));
     return res.json({ user });
   });
 

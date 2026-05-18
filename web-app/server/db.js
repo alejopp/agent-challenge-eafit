@@ -138,6 +138,72 @@ export function updateBot(botId, userId, changes) {
   return store.bots[botIndex];
 }
 
+export function saveUserCalendarToken(userId, accessToken, refreshToken, expiresAt) {
+  const store = readStore();
+  const userIndex = store.users.findIndex((u) => u.id === userId);
+  if (userIndex === -1) return false;
+  store.users[userIndex].googleCalendarToken = accessToken;
+  store.users[userIndex].googleCalendarRefreshToken = refreshToken || null;
+  store.users[userIndex].googleCalendarTokenExpiresAt = expiresAt || null;
+  writeStore(store);
+  return true;
+}
+
+export function getUserCalendarToken(userId) {
+  const store = readStore();
+  const user = store.users.find((u) => u.id === userId);
+  if (!user?.googleCalendarToken) return null;
+  return {
+    accessToken: user.googleCalendarToken,
+    refreshToken: user.googleCalendarRefreshToken || null,
+    expiresAt: user.googleCalendarTokenExpiresAt || null
+  };
+}
+
+export function clearUserCalendarToken(userId) {
+  const store = readStore();
+  const userIndex = store.users.findIndex((u) => u.id === userId);
+  if (userIndex === -1) return false;
+  delete store.users[userIndex].googleCalendarToken;
+  delete store.users[userIndex].googleCalendarRefreshToken;
+  delete store.users[userIndex].googleCalendarTokenExpiresAt;
+  writeStore(store);
+  return true;
+}
+
+export function saveUserGmailToken(userId, accessToken, refreshToken, expiresAt) {
+  const store = readStore();
+  const userIndex = store.users.findIndex((u) => u.id === userId);
+  if (userIndex === -1) return false;
+  store.users[userIndex].googleGmailToken = accessToken;
+  store.users[userIndex].googleGmailRefreshToken = refreshToken || null;
+  store.users[userIndex].googleGmailTokenExpiresAt = expiresAt || null;
+  writeStore(store);
+  return true;
+}
+
+export function getUserGmailToken(userId) {
+  const store = readStore();
+  const user = store.users.find((u) => u.id === userId);
+  if (!user?.googleGmailToken) return null;
+  return {
+    accessToken: user.googleGmailToken,
+    refreshToken: user.googleGmailRefreshToken || null,
+    expiresAt: user.googleGmailTokenExpiresAt || null
+  };
+}
+
+export function clearUserGmailToken(userId) {
+  const store = readStore();
+  const userIndex = store.users.findIndex((u) => u.id === userId);
+  if (userIndex === -1) return false;
+  delete store.users[userIndex].googleGmailToken;
+  delete store.users[userIndex].googleGmailRefreshToken;
+  delete store.users[userIndex].googleGmailTokenExpiresAt;
+  writeStore(store);
+  return true;
+}
+
 export function deleteBot(botId, userId) {
   const store = readStore();
   const botIndex = store.bots.findIndex((bot) => bot.id === botId && bot.userId === userId);
