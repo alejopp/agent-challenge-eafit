@@ -328,7 +328,13 @@ function buildHelmValues(bot, config) {
         { name: 'VS_AGENT_ADMIN_URL', value: botVsAgentAdminUrl },
         { name: 'POSTGRES_HOST', value: botPostgresHost },
         { name: 'POSTGRES_PORT', value: '5432' },
-        { name: 'CREDENTIAL_DEFINITION_ID', value: config.credentialDefinitionId }
+        { name: 'CREDENTIAL_DEFINITION_ID', value: config.credentialDefinitionId },
+        { name: 'VS_AGENT_STATS_ENABLED', value: 'true' },
+        { name: 'VS_AGENT_STATS_HOST', value: `${bot.releaseName}-artemis.${config.k8sNamespace}.svc.cluster.local` },
+        { name: 'VS_AGENT_STATS_PORT', value: '61616' },
+        { name: 'VS_AGENT_STATS_QUEUE', value: bot.slug },
+        { name: 'VS_AGENT_STATS_USER', value: 'admin' },
+        { name: 'VS_AGENT_STATS_PASSWORD', value: config.sharedPostgresPassword }
       ],
       agentPack: {
         enabled: true,
@@ -348,7 +354,29 @@ function buildHelmValues(bot, config) {
       }
     },
     stats: {
-      enabled: true
+      enabled: true,
+      secret: {
+        QUARKUS_ARTEMIS_A0_PASSWORD: config.sharedPostgresPassword,
+        QUARKUS_DATASOURCE_PASSWORD: config.sharedPostgresPassword
+      },
+      env: [
+        { name: 'DEBUG', value: '3' },
+        { name: 'QUARKUS_HTTP_PORT', value: '8700' },
+        { name: 'COM_MOBIERA_MS_COMMONS_STATS_JMS_QUEUE_NAME', value: bot.slug },
+        { name: 'COM_MOBIERA_MS_COMMONS_STATS_THREADS', value: '1' },
+        { name: 'COM_MOBIERA_MS_COMMONS_STATS_STANDALONE', value: '1' },
+        { name: 'QUARKUS_ARTEMIS_A0_URL', value: `tcp://${bot.releaseName}-artemis.${config.k8sNamespace}.svc.cluster.local:61616` },
+        { name: 'QUARKUS_ARTEMIS_A0_USERNAME', value: 'admin' },
+        { name: 'QUARKUS_DATASOURCE_JDBC_URL', value: `jdbc:postgresql://${botPostgresHost}:5432/${botDatabaseName}` },
+        { name: 'QUARKUS_DATASOURCE_USERNAME', value: botDatabaseName }
+      ]
+    },
+    artemis: {
+      enabled: true,
+      secret: {
+        ARTEMIS_USERNAME: 'admin',
+        ARTEMIS_PASSWORD: config.sharedPostgresPassword
+      }
     },
     'vs-agent-chart': {
       enabled: true,
