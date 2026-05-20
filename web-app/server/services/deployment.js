@@ -68,15 +68,41 @@ export async function issueServiceCredential(bot, config) {
   console.log(`[credential] Agent DID: ${agentDid}`);
 
   // Build claims
-  const logoUrl = bot.personaPhotoPath ? `${config.appUrl}${bot.personaPhotoPath}` : '';
   let logoDataUri = '';
-  if (logoUrl) {
+  if (bot.personaPhotoPath) {
+    const localPath = path.join(config.storageDir, bot.personaPhotoPath);
+    if (fs.existsSync(localPath)) {
+      try {
+        const buffer = fs.readFileSync(localPath);
+        const ext = path.extname(localPath).toLowerCase();
+        const mime = ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png');
+        logoDataUri = `data:${mime};base64,${buffer.toString('base64')}`;
+        console.log(`[credential] Logo loaded from local filesystem: ${localPath}`);
+      } catch (err) {
+        console.warn(`[credential] Failed to read logo from filesystem: ${err.message}`);
+      }
+    }
+  }
+
+  // Fallback to network fetch if local read failed or was skipped
+  if (!logoDataUri && bot.personaPhotoPath) {
+    const logoUrl = `${config.appUrl}${bot.personaPhotoPath}`;
+    console.log(`[credential] Attempting to fetch logo from URL (fallback): ${logoUrl}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
     try {
-      const logoRes = await fetch(logoUrl);
-      const buffer = await logoRes.arrayBuffer();
-      const mime = logoRes.headers.get('content-type') || 'image/png';
-      logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
-    } catch { /* logo download failed, continue without it */ }
+      const logoRes = await fetch(logoUrl, { signal: controller.signal });
+      if (logoRes.ok) {
+        const buffer = await logoRes.arrayBuffer();
+        const mime = logoRes.headers.get('content-type') || 'image/png';
+        logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
+        console.log('[credential] Logo successfully converted to DataURI via network');
+      }
+    } catch (err) {
+      console.warn(`[credential] Logo fetch failed or timed out: ${err.message}`);
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   const claims = {
@@ -156,11 +182,29 @@ function slugify(input) {
 }
 
 function buildMcpServers(bot, config) {
-  return bot.mcpServices.map((serviceId) => ({
-    name: serviceId,
-    transport: 'streamable-http',
-    url: `${(config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '')}/api/mcp/${serviceId}`
-  }));
+  const servers = [];
+  const selectedServices = bot.mcpServices || [];
+  
+  if (config.mcpPublicBaseUrl && selectedServices.includes('wikipedia')) {
+    servers.push({
+      name: 'wikipedia',
+      transport: 'streamable-http',
+      url: `${config.mcpPublicBaseUrl}/wikipedia`
+    });
+  }
+
+  const baseUrl = (config.mcpInternalBaseUrl || config.mcpPublicBaseUrl).replace(/\/$/, '');
+  const internalServices = selectedServices.filter(s => s !== 'wikipedia');
+  return [
+    ...servers,
+    ...internalServices.map((serviceId) => ({
+      name: serviceId,
+      transport: 'streamable-http',
+      url: (serviceId === 'google-calendar' || serviceId === 'google-gmail') && bot.userId
+        ? `${baseUrl}/api/mcp/${serviceId}?userId=${encodeURIComponent(bot.userId)}`
+        : `${baseUrl}/api/mcp/${serviceId}`
+    }))
+  ];
 }
 
 function buildAgentPack(bot, config) {
@@ -215,7 +259,7 @@ function buildAgentPack(bot, config) {
         templateKey: 'greetingMessage'
       },
       authentication: {
-        enabled: true,
+        enabled: false,
         credentialDefinitionId: config.credentialDefinitionId,
         adminAvatars: []
       },
@@ -273,6 +317,7 @@ function buildHelmValues(bot, config) {
         { name: 'LOG_LEVEL', value: '3' },
         { name: 'LLM_PROVIDER', value: 'openai' },
         { name: 'OPENAI_MODEL', value: config.openaiModel },
+        ...(config.openaiBaseUrl ? [{ name: 'OPENAI_BASE_URL', value: config.openaiBaseUrl }] : []),
         { name: 'EMBEDDINGS_PROVIDER', value: 'openai' },
         { name: 'EMBEDDINGS_MODEL', value: config.openaiModel },
         { name: 'VECTOR_STORE', value: 'redis' },
@@ -283,7 +328,13 @@ function buildHelmValues(bot, config) {
         { name: 'VS_AGENT_ADMIN_URL', value: botVsAgentAdminUrl },
         { name: 'POSTGRES_HOST', value: botPostgresHost },
         { name: 'POSTGRES_PORT', value: '5432' },
-        { name: 'CREDENTIAL_DEFINITION_ID', value: config.credentialDefinitionId }
+        { name: 'CREDENTIAL_DEFINITION_ID', value: config.credentialDefinitionId },
+        { name: 'VS_AGENT_STATS_ENABLED', value: 'true' },
+        { name: 'VS_AGENT_STATS_HOST', value: `${bot.releaseName}-artemis.${config.k8sNamespace}.svc.cluster.local` },
+        { name: 'VS_AGENT_STATS_PORT', value: '61616' },
+        { name: 'VS_AGENT_STATS_QUEUE', value: bot.slug },
+        { name: 'VS_AGENT_STATS_USER', value: 'admin' },
+        { name: 'VS_AGENT_STATS_PASSWORD', value: config.sharedPostgresPassword }
       ],
       agentPack: {
         enabled: true,
@@ -303,7 +354,30 @@ function buildHelmValues(bot, config) {
       }
     },
     stats: {
-      enabled: false
+      enabled: true,
+      secret: {
+        QUARKUS_ARTEMIS_A0_PASSWORD: config.sharedPostgresPassword,
+        QUARKUS_DATASOURCE_PASSWORD: config.sharedPostgresPassword
+      },
+      env: [
+        { name: 'DEBUG', value: '3' },
+        { name: 'QUARKUS_HTTP_PORT', value: '8700' },
+        { name: 'COM_MOBIERA_MS_COMMONS_STATS_JMS_QUEUE_NAME', value: bot.slug },
+        { name: 'COM_MOBIERA_MS_COMMONS_STATS_THREADS', value: '1' },
+        { name: 'COM_MOBIERA_MS_COMMONS_STATS_STANDALONE', value: '1' },
+        { name: 'QUARKUS_ARTEMIS_A0_URL', value: `tcp://${bot.releaseName}-artemis.${config.k8sNamespace}.svc.cluster.local:61616` },
+        { name: 'QUARKUS_ARTEMIS_A0_USERNAME', value: 'admin' },
+        { name: 'QUARKUS_DATASOURCE_JDBC_URL', value: `jdbc:postgresql://${botPostgresHost}:5432/${botDatabaseName}` },
+        { name: 'QUARKUS_DATASOURCE_USERNAME', value: botDatabaseName }
+      ]
+    },
+    artemis: {
+      enabled: true,
+      secret: [
+        { name: 'ARTEMIS_USER', value: 'admin' },
+        { name: 'ARTEMIS_USERNAME', value: 'admin' },
+        { name: 'ARTEMIS_PASSWORD', value: config.sharedPostgresPassword }
+      ]
     },
     'vs-agent-chart': {
       enabled: true,
@@ -583,6 +657,25 @@ export async function publishBot(bot, config) {
   const credResult = await issueServiceCredential(bot, config);
   if (!credResult.success && !credResult.skipped) {
     console.warn(`[credential] Warning: Helm deploy succeeded but credential issuance failed: ${credResult.error}`);
+  }
+
+  // Final reinforcement: Force a rollout restart of both the chatbot and the main VS Agent
+  if (config.enableHelmDeploy) {
+    console.log(`[publish] Triggering rollout restart for ${bot.releaseName} components to refresh public assets...`);
+    
+    // Restart the Chatbot logic
+    spawnSync(
+      'kubectl',
+      ['rollout', 'restart', 'statefulset', `${bot.releaseName}-chatbot`, '--namespace', config.k8sNamespace],
+      { env: { ...process.env, KUBECONFIG: config.kubeconfigPath }, encoding: 'utf-8' }
+    );
+
+    // Restart the VS Agent core (the one that serves the public profile)
+    spawnSync(
+      'kubectl',
+      ['rollout', 'restart', 'statefulset', `${bot.releaseName}`, '--namespace', config.k8sNamespace],
+      { env: { ...process.env, KUBECONFIG: config.kubeconfigPath }, encoding: 'utf-8' }
+    );
   }
 
   return {

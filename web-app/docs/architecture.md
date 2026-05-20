@@ -25,7 +25,4 @@ flowchart LR
 - Bot publishing is generated from the UI and executed with Helm using shared infra services.
 - Each bot should use a dedicated schema inside the shared Postgres instance, not a dedicated Postgres server.
 - Chatbot pods talk to Ollama through its OpenAI-compatible `/v1` endpoint, so no real OpenAI account is required.
-- The app exposes two functional integrations:
-  - `weather`: Open-Meteo geocoding + forecast lookup
-  - `wikipedia`: Wikipedia title search + summary lookup
 - Generated per-bot assets are written to `web-app/generated/<slug>/`.

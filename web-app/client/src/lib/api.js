@@ -43,6 +43,7 @@ export const api = {
     }),
   getMeta: () => request('/api/meta/config'),
   getMcpServices: () => request('/api/meta/mcp-services'),
+  getStats: () => request('/api/stats'),
   getBots: () => request('/api/bots'),
   getBot: (botId) => request(`/api/bots/${botId}`),
   createBot: (formData) =>
@@ -66,5 +67,12 @@ export const api = {
   deleteBot: (botId) =>
     request(`/api/bots/${botId}`, {
       method: 'DELETE'
-    })
+    }),
+  getInvitation: (botId) => request(`/api/bots/${botId}/invitation`),
+  getCalendarStatus: () => request('/api/auth/oauth/google-calendar/status'),
+  disconnectCalendar: () =>
+    request('/api/auth/oauth/google-calendar/disconnect', { method: 'POST' }),
+  getGmailStatus: () => request('/api/auth/oauth/google-gmail/status'),
+  disconnectGmail: () =>
+    request('/api/auth/oauth/google-gmail/disconnect', { method: 'POST' })
 };

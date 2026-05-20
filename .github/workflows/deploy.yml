@@ -44,16 +44,6 @@ jobs:
           fi
           echo "NETWORK=testnet" >> "$GITHUB_ENV"
 
-      - name: Load configuration
-        run: |
-          set -a
-          source config.env
-          set +a
-          while IFS= read -r line; do
-            key="${line%%=*}"
-            echo "${key}=${!key}" >> "$GITHUB_ENV"
-          done < <(grep -E '^[A-Z_]+=' config.env)
-
       - name: Prepare deployment variables
         run: |
           NAMESPACE="${{ secrets.K8S_NAMESPACE }}"
@@ -124,7 +114,21 @@ jobs:
             --set appSecrets.jwtSecret="${{ secrets.APP_JWT_SECRET }}" \
             --set appSecrets.sharedPostgresPassword="${{ secrets.SHARED_POSTGRES_PASSWORD }}" \
             --set appSecrets.openaiApiKey="${{ secrets.EXAMPLE_AGENT_OPENAI_API_KEY }}" \
+            --set appSecrets.googleClientId="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --set appSecrets.googleClientSecret="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
             --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml > /tmp/persona-ai/rendered.yaml
+
+      - name: Clear stuck Helm lock
+        if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
+        run: |
+          STATUS=$(helm status "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null | jq -r '.info.status' || echo "not-found")
+          echo "Helm release status: $STATUS"
+          if [[ "$STATUS" == "pending-upgrade" || "$STATUS" == "pending-install" || "$STATUS" == "pending-rollback" ]]; then
+            echo "Clearing stuck Helm lock for $RELEASE_NAME..."
+            helm rollback "$RELEASE_NAME" -n "$NAMESPACE" || \
+              kubectl delete secret -n "$NAMESPACE" \
+                $(kubectl get secret -n "$NAMESPACE" -l "owner=helm,name=$RELEASE_NAME" -o name 2>/dev/null | head -1) || true
+          fi
 
       - name: Deploy Persona AI Creator
         if: inputs.step == 'deploy' || inputs.step == 'all' || github.event_name == 'push'
@@ -138,6 +142,8 @@ jobs:
             --set appSecrets.jwtSecret="${{ secrets.APP_JWT_SECRET }}" \
             --set appSecrets.sharedPostgresPassword="${{ secrets.SHARED_POSTGRES_PASSWORD }}" \
             --set appSecrets.openaiApiKey="${{ secrets.EXAMPLE_AGENT_OPENAI_API_KEY }}" \
+            --set appSecrets.googleClientId="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --set appSecrets.googleClientSecret="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
             --set-file appSecrets.kubeconfig=/tmp/persona-ai/team-g-kubeconfig.yaml \
             --set vs-agent-chart.extraEnv[0].name=AGENT_WALLET_ID \
             --set vs-agent-chart.extraEnv[0].value="Persona AI Creator" \
@@ -152,6 +158,44 @@ jobs:
           kubectl get pods -n "$NAMESPACE" -o wide || true
           kubectl get svc -n "$NAMESPACE" || true
           kubectl get deploy,statefulset,pvc -n "$NAMESPACE" || true
+
+      - name: Show persona-ai-creator pod logs
+        if: always()
+        run: |
+          echo "=== All pods in namespace $NAMESPACE ==="
+          kubectl get pods -n "$NAMESPACE" || true
+          POD=$(kubectl get pod -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name" 2>/dev/null \
+            | grep "^$RELEASE_NAME" | head -1 || true)
+          if [ -n "$POD" ]; then
+            echo "=== Logs for $POD (last 150 lines) ==="
+            kubectl logs "$POD" -n "$NAMESPACE" --tail=150 2>&1 || true
+          else
+            echo "No pod found matching prefix $RELEASE_NAME — listing all pods above"
+          fi
+
+      - name: Probe VS Agent admin API (find OOB invitation endpoint)
+        if: always()
+        run: |
+          AGENT_POD=$(kubectl get pod -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name" 2>/dev/null \
+            | grep "^persona-alice-0" | head -1 || true)
+          if [ -z "$AGENT_POD" ]; then
+            echo "persona-alice pod not found, skipping probe"
+            exit 0
+          fi
+          echo "=== GET /v1/agent ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- http://localhost:3000/v1/agent 2>/dev/null || true
+          echo ""
+          echo "=== POST /v1/oob/create-invitation ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- --post-data='{"handshake":true}' \
+            --header='Content-Type: application/json' http://localhost:3000/v1/oob/create-invitation 2>/dev/null || true
+          echo ""
+          echo "=== POST /oob/create-invitation ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- --post-data='{}' \
+            --header='Content-Type: application/json' http://localhost:3000/oob/create-invitation 2>/dev/null || true
+          echo ""
+          echo "=== POST /v1/connections/create-invitation ==="
+          kubectl exec "$AGENT_POD" -n "$NAMESPACE" -- wget -qO- --post-data='{}' \
+            --header='Content-Type: application/json' http://localhost:3000/v1/connections/create-invitation 2>/dev/null || true
 
       # -----------------------------------------------------------------------
       # GET-CREDENTIALS: Issue Service credential for all deployed agents
@@ -220,9 +264,9 @@ jobs:
               -o jsonpath='{.data.agent-pack\.yaml}' 2>/dev/null \
               | grep -E '^  description:' | sed 's/.*description: *//' | tr -d '"' | head -1)
 
-            # Fallback to config.env values if not found in ConfigMap
-            AGENT_DISPLAY_NAME="${AGENT_DISPLAY_NAME:-$SERVICE_NAME}"
-            AGENT_DESCRIPTION="${AGENT_DESCRIPTION:-$SERVICE_DESCRIPTION}"
+            # Use metadata found in ConfigMap or empty if not found
+            AGENT_DISPLAY_NAME="${AGENT_DISPLAY_NAME:-$AGENT_NAME}"
+            AGENT_DESCRIPTION="${AGENT_DESCRIPTION:-"Persona AI Agent"}"
             echo "  Name: $AGENT_DISPLAY_NAME"
             echo "  Description: $AGENT_DESCRIPTION"
 

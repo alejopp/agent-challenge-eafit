@@ -2,6 +2,23 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BotForm } from '../components/BotForm';
 import { PublishingOverlay } from '../components/PublishingOverlay';
+import { api } from '../lib/api.js';
+
+const MCP_ICONS = {
+  'weather': '🌤️',
+  'wikipedia': '📖',
+  'google-calendar': '📅',
+  'google-gmail': '✉️'
+};
+
+const MCP_NAMES = {
+  'weather': 'Weather',
+  'wikipedia': 'Wikipedia',
+  'google-calendar': 'Google Calendar',
+  'google-gmail': 'Gmail'
+};
+
+const formatMcp = (id) => MCP_NAMES[id] || id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onUnpublish }) {
   const navigate = useNavigate();
@@ -10,10 +27,18 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
   const [busyAction, setBusyAction] = useState(''); // 'saving', 'publishing', 'unpublishing'
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [invitationUrl, setInvitationUrl] = useState(null);
 
   useEffect(() => {
     loadBot(botId)
-      .then(setBot)
+      .then((loadedBot) => {
+        setBot(loadedBot);
+        if (loadedBot.status === 'published' && loadedBot.publicUrl) {
+          api.getInvitation(botId)
+            .then((data) => setInvitationUrl(data.invitationUrl))
+            .catch(() => setInvitationUrl(loadedBot.publicUrl));
+        }
+      })
       .catch((loadError) => setError(loadError.message));
   }, [botId, loadBot]);
 
@@ -22,7 +47,7 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
   }
 
   if (!bot) {
-    return <div className="loading-card">Loading bot...</div>;
+    return <div className="loading-card">Cargando bot...</div>;
   }
 
   const handleSave = async (formData) => {
@@ -90,11 +115,6 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
   return (
     <div className="bot-summary-page">
       <div className="bot-summary-header">
-        <div className="bot-summary-title">
-          <span className={`status-pill ${bot.status}`}>{bot.status}</span>
-          <h1>{bot.personaName}</h1>
-          <p className="bot-summary-profession">{bot.profession}</p>
-        </div>
         <div className="bot-summary-avatar">
           {bot.personaPhotoPath ? (
             <img src={bot.personaPhotoPath} alt={bot.personaName} className="bot-summary-photo" />
@@ -104,58 +124,80 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
             </div>
           )}
         </div>
+
+        <div className="bot-summary-title">
+          <h1>{bot.personaName}</h1>
+          <p className="bot-summary-profession">{bot.profession}</p>
+          <span className={`status-pill ${bot.status}`}>
+            {bot.status === 'published' ? 'publicado' : 'borrador'}
+          </span>
+        </div>
+
+        {bot.publicUrl && bot.status === 'published' && (
+          <div className="bot-summary-qr">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(invitationUrl || bot.publicUrl)}&format=png&margin=10&ecc=H`}
+              alt="QR para escanear"
+              className="bot-summary-qr-img"
+            />
+            <span className="bot-summary-qr-label">Escanear para conectar</span>
+          </div>
+        )}
       </div>
 
       <div className="bot-summary-grid">
         <div className="bot-summary-card">
           <h3>Persona</h3>
           <div className="bot-summary-field">
-            <span className="field-label">Name</span>
+            <span className="field-label">Nombre</span>
             <span className="field-value">{bot.personaName}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Profession</span>
+            <span className="field-label">Profesión</span>
             <span className="field-value">{bot.profession}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Description</span>
+            <span className="field-label">Descripción</span>
             <span className="field-value">{bot.personaDescription}</span>
           </div>
         </div>
 
         <div className="bot-summary-card">
-          <h3>Service</h3>
+          <h3>Servicio</h3>
           <div className="bot-summary-field">
-            <span className="field-label">Name</span>
+            <span className="field-label">Nombre</span>
             <span className="field-value">{bot.serviceName}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Category</span>
+            <span className="field-label">Categoría</span>
             <span className="field-value">{bot.serviceCategory}</span>
           </div>
           <div className="bot-summary-field">
-            <span className="field-label">Description</span>
+            <span className="field-label">Descripción</span>
             <span className="field-value">{bot.serviceDescription}</span>
           </div>
         </div>
 
-        <div className="bot-summary-card">
-          <h3>System Prompt</h3>
+        <div className="bot-summary-card span-full">
+          <h3>Instrucciones (System Prompt)</h3>
           <pre className="bot-summary-prompt">{bot.prompt}</pre>
         </div>
 
-        <div className="bot-summary-card">
-          <h3>MCP Services</h3>
-          <div className="rag-list">
+        <div className="bot-summary-card span-full">
+          <h3>Servicios MCP</h3>
+          <div className="mcp-chip-list">
             {bot.mcpServices.map((service) => (
-              <div key={service} className="rag-chip">{service}</div>
+              <div key={service} className="mcp-service-chip">
+                <span className="mcp-service-chip-icon">{MCP_ICONS[service] || '⚙️'}</span>
+                <span>{formatMcp(service)}</span>
+              </div>
             ))}
           </div>
         </div>
 
         {bot.ragFiles?.length > 0 && (
-          <div className="bot-summary-card">
-            <h3>RAG Documents</h3>
+          <div className="bot-summary-card span-full">
+            <h3>Documentos RAG</h3>
             <div className="rag-list">
               {bot.ragFiles.map((file) => (
                 <div key={file.path} className="rag-chip">{file.originalName}</div>
@@ -164,36 +206,34 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           </div>
         )}
 
-        {bot.publicUrl && (
-          <div className="bot-summary-card">
-            <h3>Public URL</h3>
-            <a href={bot.publicUrl} target="_blank" rel="noreferrer" className="text-link">
-              {bot.publicUrl}
-            </a>
-          </div>
-        )}
-
-        <div className="bot-summary-card deployment-card">
-          <h3>Deployment</h3>
+        <div className="bot-summary-card span-full deployment-card">
+          <h3>Despliegue</h3>
           {bot.deploymentNotes && (
             <p className="deployment-notes">{bot.deploymentNotes}</p>
           )}
-          <div className="stacked-actions">
-            <button
-              className="deploy-button"
-              onClick={handlePublish}
-              disabled={busy}
-            >
-              Publish to Kubernetes
-            </button>
-            <button
-              className="deploy-button"
-              onClick={handleUnpublish}
-              disabled={busy}
-            >
-              Unpublish
-            </button>
-          </div>
+
+          {busy && (busyAction === 'publishing' || busyAction === 'unpublishing') ? (
+            <PublishingOverlay
+              message={busyAction === 'publishing' ? "Publicando en Kubernetes..." : "Despublicando bot..."}
+            />
+          ) : (
+            <div className="stacked-actions">
+              <button
+                className="deploy-button"
+                onClick={handlePublish}
+                disabled={busy}
+              >
+                Publicar en Kubernetes
+              </button>
+              <button
+                className="deploy-button"
+                onClick={handleUnpublish}
+                disabled={busy}
+              >
+                Despublicar
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -203,14 +243,14 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
           onClick={() => navigate(`/bots/${botId}/edit`)}
           disabled={busy}
         >
-          ✏️ Edit bot
+          ✏️ Editar bot
         </button>
         <button
           className={`delete-button ${confirmDelete ? 'confirm' : ''}`}
           onClick={handleDelete}
           disabled={busy}
         >
-          {confirmDelete ? '⚠️ Confirm delete' : '🗑️ Delete bot'}
+          {confirmDelete ? '⚠️ Confirmar borrado' : '🗑️ Borrar bot'}
         </button>
         {confirmDelete && (
           <button
@@ -218,17 +258,10 @@ export function BotDetailPage({ botId, loadBot, onSave, onDelete, onPublish, onU
             onClick={() => setConfirmDelete(false)}
             disabled={busy}
           >
-            Cancel
+            Cancelar
           </button>
         )}
       </div>
-      
-      {busy && busyAction === 'publishing' && (
-        <PublishingOverlay message="Publishing to Kubernetes..." />
-      )}
-      {busy && busyAction === 'unpublishing' && (
-        <PublishingOverlay message="Unpublishing bot..." />
-      )}
     </div>
   );
 }
