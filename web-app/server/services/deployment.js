@@ -338,7 +338,7 @@ function buildHelmValues(bot, config) {
         { name: 'POSTGRES_HOST', value: botPostgresHost },
         { name: 'POSTGRES_PORT', value: '5432' },
         { name: 'CREDENTIAL_DEFINITION_ID', value: config.credentialDefinitionId },
-        { name: 'VS_AGENT_STATS_ENABLED', value: 'true' },
+        { name: 'VS_AGENT_STATS_ENABLED', value: 'false' },
         { name: 'VS_AGENT_STATS_HOST', value: `${bot.releaseName}-artemis.${config.k8sNamespace}.svc.cluster.local` },
         { name: 'VS_AGENT_STATS_PORT', value: '61616' },
         { name: 'VS_AGENT_STATS_QUEUE', value: bot.slug },
@@ -363,7 +363,7 @@ function buildHelmValues(bot, config) {
       }
     },
     stats: {
-      enabled: true,
+      enabled: false,
       secret: {
         QUARKUS_ARTEMIS_A0_PASSWORD: config.sharedPostgresPassword,
         QUARKUS_DATASOURCE_PASSWORD: config.sharedPostgresPassword
@@ -381,7 +381,7 @@ function buildHelmValues(bot, config) {
       ]
     },
     artemis: {
-      enabled: true,
+      enabled: false,
       secret: [
         { name: 'ARTEMIS_USER', value: 'admin' },
         { name: 'ARTEMIS_USERNAME', value: 'admin' },

@@ -14,34 +14,6 @@ export function DashboardPage({ bots, stats }) {
 
   return (
     <div className="dashboard-layout">
-      <section className="stats-grid">
-        <article
-          className={`stat-card clickable ${activeFilter === 'all' ? 'filter-active' : ''}`}
-          onClick={() => setActiveFilter('all')}
-        >
-          <span>Total de bots</span>
-          <strong>{stats.totalBots}</strong>
-        </article>
-        <article
-          className={`stat-card clickable ${activeFilter === 'published' ? 'filter-active' : ''}`}
-          onClick={() => toggleFilter('published')}
-        >
-          <span>Publicados</span>
-          <strong>{stats.publishedBots}</strong>
-        </article>
-        <article
-          className={`stat-card clickable ${activeFilter === 'draft' ? 'filter-active' : ''}`}
-          onClick={() => toggleFilter('draft')}
-        >
-          <span>Borradores</span>
-          <strong>{stats.draftBots}</strong>
-        </article>
-        <article className="stat-card accent">
-          <span>Servicios MCP activos</span>
-          <strong>{stats.mcpServices}</strong>
-        </article>
-      </section>
-
       <section className="workspace-card">
         <div className="workspace-header">
           <div>
