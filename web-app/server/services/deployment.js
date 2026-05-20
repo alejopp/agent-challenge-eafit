@@ -373,10 +373,10 @@ function buildHelmValues(bot, config) {
     },
     artemis: {
       enabled: true,
-      secret: {
-        ARTEMIS_USERNAME: 'admin',
-        ARTEMIS_PASSWORD: config.sharedPostgresPassword
-      }
+      secret: [
+        { name: 'ARTEMIS_USERNAME', value: 'admin' },
+        { name: 'ARTEMIS_PASSWORD', value: config.sharedPostgresPassword }
+      ]
     },
     'vs-agent-chart': {
       enabled: true,
