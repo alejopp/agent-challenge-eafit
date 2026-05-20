@@ -374,6 +374,7 @@ function buildHelmValues(bot, config) {
     artemis: {
       enabled: true,
       secret: [
+        { name: 'ARTEMIS_USER', value: 'admin' },
         { name: 'ARTEMIS_USERNAME', value: 'admin' },
         { name: 'ARTEMIS_PASSWORD', value: config.sharedPostgresPassword }
       ]
