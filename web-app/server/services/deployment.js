@@ -19,152 +19,152 @@ async function fetchJson(url, options = {}) {
 export async function issueServiceCredential(bot, config) {
   try {
     const orgAdminApi = (config.veranaOrgAdminUrl || '').replace(/\/$/, '');
-  const agentAdminApi = `http://${bot.releaseName}.${config.k8sNamespace}:3000`;
+    const agentAdminApi = `http://${bot.releaseName}.${config.k8sNamespace}:3000`;
 
-  // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
+    // (No early-exit: always re-issue so name/description/logo stay in sync with the bot data)
 
-  // Discover the Service JSC URL from the ECS Trust Registry
-  const ecrTrPublicUrl = 'https://ecs-trust-registry.testnet.verana.network';
-  console.log(`[credential] Discovering Service JSC from ${ecrTrPublicUrl}/.well-known/did.json...`);
-  
-  const didRes = await fetchJson(`${ecrTrPublicUrl}/.well-known/did.json`);
-  if (!didRes.ok) {
-    console.error(`[credential] Failed to fetch DID doc: ${didRes.status}`);
-    return { success: false, error: `Failed to fetch DID doc: ${didRes.status}` };
-  }
+    // Discover the Service JSC URL from the ECS Trust Registry
+    const ecrTrPublicUrl = 'https://ecs-trust-registry.testnet.verana.network';
+    console.log(`[credential] Discovering Service JSC from ${ecrTrPublicUrl}/.well-known/did.json...`);
 
-  const vpUrl = didRes.body?.service?.find(s => 
-    s.type === 'LinkedVerifiablePresentation' && s.id.includes('service-jsc-vp')
-  )?.serviceEndpoint;
+    const didRes = await fetchJson(`${ecrTrPublicUrl}/.well-known/did.json`);
+    if (!didRes.ok) {
+      console.error(`[credential] Failed to fetch DID doc: ${didRes.status}`);
+      return { success: false, error: `Failed to fetch DID doc: ${didRes.status}` };
+    }
 
-  if (!vpUrl) {
-    console.error('[credential] No Service JSC VP endpoint found in DID document');
-    return { success: false, error: 'No Service JSC VP endpoint found' };
-  }
-  console.log(`[credential] Resolved VP URL: ${vpUrl}`);
+    const vpUrl = didRes.body?.service?.find(s =>
+      s.type === 'LinkedVerifiablePresentation' && s.id.includes('service-jsc-vp')
+    )?.serviceEndpoint;
 
-  const vpRes = await fetchJson(vpUrl);
-  const serviceJscUrl = vpRes.body?.verifiableCredential?.[0]?.id;
-  console.log(`[credential] Resolved Service JSC URL: ${serviceJscUrl}`);
-  if (!serviceJscUrl) {
-    console.error('[credential] No Service JSC URL found in VP');
-    return { success: false, error: 'No Service JSC URL found' };
-  }
+    if (!vpUrl) {
+      console.error('[credential] No Service JSC VP endpoint found in DID document');
+      return { success: false, error: 'No Service JSC VP endpoint found' };
+    }
+    console.log(`[credential] Resolved VP URL: ${vpUrl}`);
 
-  // Get agent DID
-  let agentDid;
-  for (let attempt = 0; attempt < 10; attempt++) {
-    try {
-      const agentRes = await fetchJson(`${agentAdminApi}/v1/agent`);
-      agentDid = agentRes.body?.publicDid;
-      if (agentDid) break;
-    } catch { /* agent still starting */ }
-    await new Promise((r) => setTimeout(r, 6000));
-  }
-  if (!agentDid) {
-    console.error(`[credential] Could not get DID from agent ${bot.slug}`);
-    return { success: false, error: 'Agent DID not available after retries' };
-  }
-  console.log(`[credential] Agent DID: ${agentDid}`);
+    const vpRes = await fetchJson(vpUrl);
+    const serviceJscUrl = vpRes.body?.verifiableCredential?.[0]?.id;
+    console.log(`[credential] Resolved Service JSC URL: ${serviceJscUrl}`);
+    if (!serviceJscUrl) {
+      console.error('[credential] No Service JSC URL found in VP');
+      return { success: false, error: 'No Service JSC URL found' };
+    }
 
-  // Build claims
-  let logoDataUri = '';
-  if (bot.personaPhotoPath) {
-    const localPath = path.join(config.storageDir, bot.personaPhotoPath);
-    if (fs.existsSync(localPath)) {
+    // Get agent DID
+    let agentDid;
+    for (let attempt = 0; attempt < 10; attempt++) {
       try {
-        const buffer = fs.readFileSync(localPath);
-        const ext = path.extname(localPath).toLowerCase();
-        const mime = ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png');
-        logoDataUri = `data:${mime};base64,${buffer.toString('base64')}`;
-        console.log(`[credential] Logo loaded from local filesystem: ${localPath}`);
-      } catch (err) {
-        console.warn(`[credential] Failed to read logo from filesystem: ${err.message}`);
-      }
+        const agentRes = await fetchJson(`${agentAdminApi}/v1/agent`);
+        agentDid = agentRes.body?.publicDid;
+        if (agentDid) break;
+      } catch { /* agent still starting */ }
+      await new Promise((r) => setTimeout(r, 6000));
     }
-  }
-
-  // Fallback to network fetch if local read failed or was skipped
-  if (!logoDataUri && bot.personaPhotoPath) {
-    const logoUrl = `${config.appUrl}${bot.personaPhotoPath}`;
-    console.log(`[credential] Attempting to fetch logo from URL (fallback): ${logoUrl}`);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-    try {
-      const logoRes = await fetch(logoUrl, { signal: controller.signal });
-      if (logoRes.ok) {
-        const buffer = await logoRes.arrayBuffer();
-        const mime = logoRes.headers.get('content-type') || 'image/png';
-        logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
-        console.log('[credential] Logo successfully converted to DataURI via network');
-      }
-    } catch (err) {
-      console.warn(`[credential] Logo fetch failed or timed out: ${err.message}`);
-    } finally {
-      clearTimeout(timeoutId);
+    if (!agentDid) {
+      console.error(`[credential] Could not get DID from agent ${bot.slug}`);
+      return { success: false, error: 'Agent DID not available after retries' };
     }
-  }
+    console.log(`[credential] Agent DID: ${agentDid}`);
 
-  const claims = {
-    id: agentDid,
-    name: bot.personaName,
-    type: 'AIAgent',
-    description: bot.serviceDescription || bot.personaDescription || '',
-    logo: logoDataUri,
-    minimumAgeRequired: 0,
-    termsAndConditions: 'https://verana.io/terms',
-    privacyPolicy: 'https://verana.io/privacy'
-  };
-
-  // Issue credential from org admin API
-  const issueRes = await fetchJson(`${orgAdminApi}/v1/vt/issue-credential`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ format: 'jsonld', did: agentDid, jsonSchemaCredentialId: serviceJscUrl, claims })
-  });
-
-  if (!issueRes.ok) {
-    console.error(`[credential] Issue failed (${issueRes.status}):`, issueRes.body);
-    return { success: false, error: `Issue credential failed: ${issueRes.status}` };
-  }
-  console.log('[credential] Credential issued successfully');
-
-  const credential = issueRes.body?.credential || issueRes.body;
-
-  // Deep Cleanup: Delete ALL existing linked credentials to avoid "Ghost Credentials" from old registries
-  try {
-    const linkedRes = await fetchJson(`${agentAdminApi}/v1/vt/linked-credentials`);
-    if (linkedRes.ok && Array.isArray(linkedRes.body)) {
-      for (const item of linkedRes.body) {
-        const schemaId = item.credential?.credentialSchema?.id;
-        if (schemaId) {
-          console.log(`[credential] Cleaning up existing credential: ${schemaId}`);
-          await fetch(`${agentAdminApi}/v1/vt/linked-credentials`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credentialSchemaId: schemaId })
-          }).catch(() => {});
+    // Build claims
+    let logoDataUri = '';
+    if (bot.personaPhotoPath) {
+      const localPath = path.join(config.storageDir, bot.personaPhotoPath);
+      if (fs.existsSync(localPath)) {
+        try {
+          const buffer = fs.readFileSync(localPath);
+          const ext = path.extname(localPath).toLowerCase();
+          const mime = ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png');
+          logoDataUri = `data:${mime};base64,${buffer.toString('base64')}`;
+          console.log(`[credential] Logo loaded from local filesystem: ${localPath}`);
+        } catch (err) {
+          console.warn(`[credential] Failed to read logo from filesystem: ${err.message}`);
         }
       }
     }
-  } catch (err) {
-    console.warn('[credential] Failed to perform deep cleanup, continuing anyway...');
-  }
 
-  // Link credential on agent
-  const linkRes = await fetchJson(`${agentAdminApi}/v1/vt/linked-credentials`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ schemaBaseId: 'service', credential })
-  });
+    // Fallback to network fetch if local read failed or was skipped
+    if (!logoDataUri && bot.personaPhotoPath) {
+      const logoUrl = `${config.appUrl}${bot.personaPhotoPath}`;
+      console.log(`[credential] Attempting to fetch logo from URL (fallback): ${logoUrl}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+      try {
+        const logoRes = await fetch(logoUrl, { signal: controller.signal });
+        if (logoRes.ok) {
+          const buffer = await logoRes.arrayBuffer();
+          const mime = logoRes.headers.get('content-type') || 'image/png';
+          logoDataUri = `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
+          console.log('[credential] Logo successfully converted to DataURI via network');
+        }
+      } catch (err) {
+        console.warn(`[credential] Logo fetch failed or timed out: ${err.message}`);
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
 
-  if (!linkRes.ok) {
-    console.error(`[credential] Link failed (${linkRes.status}):`, linkRes.body);
-    return { success: false, error: `Link credential failed: ${linkRes.status}` };
-  }
+    const claims = {
+      id: agentDid,
+      name: bot.personaName,
+      type: 'AIAgent',
+      description: bot.serviceDescription || bot.personaDescription || '',
+      logo: logoDataUri,
+      minimumAgeRequired: 0,
+      termsAndConditions: 'https://verana.io/terms',
+      privacyPolicy: 'https://verana.io/privacy'
+    };
 
-  console.log(`[credential] Service credential issued and linked for ${bot.slug}`);
-  return { success: true };
+    // Issue credential from org admin API
+    const issueRes = await fetchJson(`${orgAdminApi}/v1/vt/issue-credential`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ format: 'jsonld', did: agentDid, jsonSchemaCredentialId: serviceJscUrl, claims })
+    });
+
+    if (!issueRes.ok) {
+      console.error(`[credential] Issue failed (${issueRes.status}):`, issueRes.body);
+      return { success: false, error: `Issue credential failed: ${issueRes.status}` };
+    }
+    console.log('[credential] Credential issued successfully');
+
+    const credential = issueRes.body?.credential || issueRes.body;
+
+    // Deep Cleanup: Delete ALL existing linked credentials to avoid "Ghost Credentials" from old registries
+    try {
+      const linkedRes = await fetchJson(`${agentAdminApi}/v1/vt/linked-credentials`);
+      if (linkedRes.ok && Array.isArray(linkedRes.body)) {
+        for (const item of linkedRes.body) {
+          const schemaId = item.credential?.credentialSchema?.id;
+          if (schemaId) {
+            console.log(`[credential] Cleaning up existing credential: ${schemaId}`);
+            await fetch(`${agentAdminApi}/v1/vt/linked-credentials`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ credentialSchemaId: schemaId })
+            }).catch(() => { });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[credential] Failed to perform deep cleanup, continuing anyway...');
+    }
+
+    // Link credential on agent
+    const linkRes = await fetchJson(`${agentAdminApi}/v1/vt/linked-credentials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schemaBaseId: 'service', credential })
+    });
+
+    if (!linkRes.ok) {
+      console.error(`[credential] Link failed (${linkRes.status}):`, linkRes.body);
+      return { success: false, error: `Link credential failed: ${linkRes.status}` };
+    }
+
+    console.log(`[credential] Service credential issued and linked for ${bot.slug}`);
+    return { success: true };
   } catch (error) {
     console.error(`[credential] Unexpected error in issueServiceCredential for ${bot.slug}:`, error);
     return { success: false, error: error.message };
@@ -184,7 +184,7 @@ function slugify(input) {
 function buildMcpServers(bot, config) {
   const servers = [];
   const selectedServices = bot.mcpServices || [];
-  
+
   if (config.mcpPublicBaseUrl && selectedServices.includes('wikipedia')) {
     servers.push({
       name: 'wikipedia',
@@ -227,7 +227,14 @@ function buildAgentPack(bot, config) {
           CREDENTIAL: 'Autenticar',
           WELCOME: `Bienvenido. Soy ${bot.personaName} y te ayudaré con ${bot.serviceName}.`,
           AUTH_REQUIRED: 'Debes autenticarte para continuar.',
-          AUTH_SUCCESS: 'Autenticación completada con éxito.'
+          AUTH_SUCCESS: 'Autenticación completada con éxito.',
+          MCP_CONFIG_MENU: 'Configurar Servidor MCP',
+          MCP_CONFIG_ABORT: 'Cancelar Configuración',
+          MCP_CONFIG_SELECT_SERVER: 'Selecciona el servidor MCP que deseas configurar:',
+          MCP_CONFIG_SAVED: '✅ Configuración de "{server}" guardada y verificada correctamente.',
+          MCP_CONFIG_INVALID: '⚠️ La prueba de conexión falló para "{server}". Las credenciales pueden ser inválidas. Por favor, intenta configurar de nuevo.',
+          MCP_CONFIG_ERROR: 'Ocurrió un error al guardar la configuración. Por favor, inténtalo de nuevo.',
+          MCP_CONFIG_ABORTED: 'Configuración cancelada.'
         }
       }
     },
@@ -235,17 +242,17 @@ function buildAgentPack(bot, config) {
       provider: 'openai',
       model: config.openaiModel,
       temperature: 0.4,
-      agentPrompt: bot.prompt
+      agentPrompt: `${bot.prompt}\n\n- Error handling: when an MCP tool returns an error, share the error details and a brief explanation of the likely cause so the user can troubleshoot. Common causes include: expired or invalid token (reconfigure via MCP Server Config menu in the chatbot). Always suggest a concrete next step.`
     },
     rag: bot.ragFiles.length
       ? {
-          provider: 'langchain',
-          docsPath: '/app/rag/docs',
-          vectorStore: {
-            type: 'redis',
-            indexName: bot.slug.replace(/-/g, '_')
-          }
+        provider: 'langchain',
+        docsPath: '/app/rag/docs',
+        vectorStore: {
+          type: 'redis',
+          indexName: bot.slug.replace(/-/g, '_')
         }
+      }
       : undefined,
     memory: {
       backend: 'redis',
@@ -265,8 +272,10 @@ function buildAgentPack(bot, config) {
       },
       menu: {
         items: [
-          { id: 'authenticate', labelKey: 'CREDENTIAL', action: 'authenticate' },
-          { id: 'logout', labelKey: 'LOGOUT', action: 'logout' }
+          { id: 'authenticate', labelKey: 'CREDENTIAL', action: 'authenticate', visibleWhen: 'unauthenticated' },
+          { id: 'logout', labelKey: 'LOGOUT', action: 'logout', visibleWhen: 'authenticated' },
+          { id: 'mcp-config', labelKey: 'MCP_CONFIG_MENU', action: 'mcp-config', visibleWhen: 'notConfiguring' },
+          { id: 'abort-config', labelKey: 'MCP_CONFIG_ABORT', action: 'abort-config', visibleWhen: 'configuring' }
         ]
       }
     },
@@ -525,7 +534,7 @@ function runHelm(action, bot, config, botDir) {
     validateSharedInfrastructure(config);
 
     const dbJobFile = path.join(botDir, 'db-setup-job.yaml');
-    
+
     // Create/update the database setup job
     const jobResult = spawnSync(
       'kubectl',
@@ -662,7 +671,7 @@ export async function publishBot(bot, config) {
   // Final reinforcement: Force a rollout restart of both the chatbot and the main VS Agent
   if (config.enableHelmDeploy) {
     console.log(`[publish] Triggering rollout restart for ${bot.releaseName} components to refresh public assets...`);
-    
+
     // Restart the Chatbot logic
     spawnSync(
       'kubectl',
